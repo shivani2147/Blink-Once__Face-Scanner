@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102c25">
+  <title>Gathered | Every moment, found</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink:#102c25; --muted:#6c7d76; --paper:#f7f6f0; --white:#fff; --mint:#d9eee3; --coral:#ef735b; --line:#dfe5df; --shadow:0 22px 60px rgba(16,44,37,.12); }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--paper); font-family:'DM Sans',sans-serif; }
+    button,input,select { font:inherit; }
+    button { cursor:pointer; border:0; }
+    .app { min-height:100vh; background: radial-gradient(circle at 82% 0%, #dceee2 0 17%, transparent 37%), var(--paper); }
+    .nav { height:78px; display:flex; align-items:center; justify-content:space-between; max-width:1240px; margin:auto; padding:0 32px; }
+    .brand { display:flex; gap:10px; align-items:center; font-weight:700; letter-spacing:-.03em; font-size:20px; }
+    .brand-mark { width:33px; height:33px; display:grid; place-items:center; border-radius:11px 11px 11px 3px; color:#fff; background:var(--coral); font-family:Fraunces,serif; font-size:21px; }
+    .nav-links { display:flex; gap:9px; align-items:center; }
+    .nav button,.nav a { color:var(--ink); background:none; padding:10px 14px; text-decoration:none; font-size:13px; font-weight:600; }
+    .nav .admin-button { background:var(--ink); color:#fff; border-radius:7px; }
+    .hero { max-width:1240px; margin:0 auto; padding:72px 32px 84px; display:grid; grid-template-columns:1.03fr .97fr; gap:70px; align-items:center; }
+    .eyebrow { color:var(--coral); font-size:12px; font-weight:700; letter-spacing:.13em; text-transform:uppercase; margin:0 0 18px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:650px; font:600 clamp(52px,7vw,84px)/.94 Fraunces,serif; letter-spacing:-.055em; margin-bottom:25px; }
+    .hero-copy { max-width:500px; font-size:17px; line-height:1.65; color:var(--muted); margin-bottom:30px; }
+    .hero-actions { display:flex; gap:12px; flex-wrap:wrap; }
+    .primary,.secondary { border-radius:7px; padding:14px 19px; font-weight:700; font-size:14px; }
+    .primary { color:#fff; background:var(--coral); box-shadow:0 8px 20px rgba(239,115,91,.25); }
+    .secondary { color:var(--ink); background:transparent; border:1px solid var(--ink); }
+    .hero-art { min-height:420px; position:relative; }
+    .photo-stack { width:min(100%,430px); height:430px; margin:auto; position:relative; }
+    .photo { position:absolute; overflow:hidden; border:8px solid #fff; box-shadow:var(--shadow); background:#d3e5dc; }
+    .photo img { width:100%; height:100%; display:block; object-fit:cover; }
+    .photo.one { width:250px; height:315px; transform:rotate(-7deg); left:8%; top:5%; }
+    .photo.two { width:230px; height:290px; transform:rotate(8deg); right:1%; top:25%; }
+    .photo.three { width:190px; height:205px; transform:rotate(-4deg); left:30%; bottom:-2%; }
+    .floating-note { position:absolute; left:0; bottom:34px; padding:13px 17px; background:#fff; box-shadow:var(--shadow); border-radius:8px; font-size:12px; z-index:3; }
+    .floating-note strong { display:block; font-size:14px; margin-bottom:3px; }
+    .empty-gallery { min-height:320px; display:grid; place-items:center; border:1px dashed #afc9bc; border-radius:10px; color:var(--muted); background:rgba(255,255,255,.42); text-align:center; padding:28px; }
+    .empty-gallery strong { display:block; color:var(--ink); font:500 28px Fraunces,serif; margin-bottom:8px; }
+    .section { max-width:1240px; margin:auto; padding:52px 32px 85px; }
+    .section-head { display:flex; justify-content:space-between; align-items:end; gap:20px; margin-bottom:25px; }
+    h2 { font:600 42px/1 Fraunces,serif; letter-spacing:-.04em; margin-bottom:0; }
+    .section-head p { color:var(--muted); max-width:340px; line-height:1.5; margin-bottom:2px; font-size:14px; }
+    .event-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .event-card { min-height:288px; position:relative; overflow:hidden; border-radius:10px; background:var(--ink); color:#fff; }
+    .event-card img { width:100%; height:100%; object-fit:cover; opacity:.66; transition:transform .5s ease; }
+    .event-card:hover img { transform:scale(1.05); }
+    .event-info { position:absolute; inset:auto 0 0; padding:22px; background:linear-gradient(transparent,rgba(16,44,37,.93)); }
+    .event-info span { color:#c9e4d7; font-size:11px; text-transform:uppercase; letter-spacing:.1em; }
+    .event-info h3 { margin:7px 0 4px; font:500 27px Fraunces,serif; }
+    .event-info p { margin:0; font-size:12px; opacity:.8; }
+    .how { background:var(--mint); max-width:none; padding-left:max(32px,calc((100% - 1176px)/2)); padding-right:max(32px,calc((100% - 1176px)/2)); }
+    .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:38px; margin-top:34px; }
+    .step-number { color:var(--coral); font:500 28px Fraunces,serif; border-bottom:1px solid rgba(16,44,37,.18); padding-bottom:15px; margin-bottom:17px; }
+    .step h3 { font-size:17px; margin-bottom:9px; }
+    .step p { color:#557168; font-size:14px; line-height:1.6; max-width:260px; }
+    .modal { display:none; position:fixed; inset:0; z-index:10; background:rgba(16,44,37,.54); padding:22px; align-items:center; justify-content:center; }
+    .modal.open { display:flex; }
+    .modal-card { width:min(100%,530px); max-height:94vh; overflow:auto; background:var(--paper); border-radius:11px; padding:30px; box-shadow:0 30px 100px rgba(0,0,0,.25); animation:rise .3s ease both; }
+    @keyframes rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+    .modal-top { display:flex; justify-content:space-between; align-items:start; margin-bottom:24px; }
+    .modal-top h2 { font-size:34px; }
+    .close { background:none; font-size:25px; color:var(--muted); padding:0 4px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+    .field { display:flex; flex-direction:column; gap:7px; margin-bottom:13px; }
+    .field.full { grid-column:1/-1; }
+    label { font-size:12px; font-weight:700; }
+    input,select { width:100%; padding:13px 12px; border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink); outline-color:var(--coral); }
+    .upload-zone { border:1.5px dashed #afc9bc; border-radius:8px; background:#edf7f1; padding:22px; text-align:center; margin:5px 0 20px; }
+    .upload-zone p { color:var(--muted); font-size:12px; margin:8px 0 14px; }
+    .upload-zone input { display:none; }
+    .file-label { display:inline-block; background:var(--ink); color:#fff; border-radius:6px; padding:11px 15px; font-size:12px; font-weight:700; }
+    .preview { display:none; width:85px; height:85px; margin:0 auto 10px; object-fit:cover; border-radius:50%; border:4px solid #fff; }
+    .form-submit { width:100%; margin-top:5px; }
+    .success { display:none; text-align:center; padding:20px 5px 8px; }
+    .success-icon { margin:auto auto 17px; width:52px; height:52px; border-radius:50%; display:grid; place-items:center; background:#bfe5cf; font-size:25px; }
+    .success h3 { font:500 31px Fraunces,serif; margin-bottom:8px; }
+    .success p { color:var(--muted); font-size:14px; line-height:1.5; }
+    .results { display:none; margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+    .results.show { display:block; }
+    .results-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:13px; }
+    .results-head h3 { margin:0; font:500 23px Fraunces,serif; }
+    .mini-gallery { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+    .mini-gallery img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:5px; }
+    .admin-card { display:none; }
+    .admin-card.open { display:block; }
+    .qr-box { display:grid; grid-template-columns:162px 1fr; gap:20px; align-items:center; margin:10px 0 22px; }
+    .qr { width:162px; height:162px; padding:10px; background:#fff; border:1px solid var(--line); }
+    .qr canvas,.qr img { display:block; width:140px; height:140px; }
+    .qr-copy p { color:var(--muted); font-size:13px; line-height:1.5; }
+    .toast { position:fixed; left:50%; bottom:23px; transform:translate(-50%,20px); opacity:0; background:var(--ink); color:#fff; padding:12px 18px; border-radius:6px; font-size:13px; transition:.25s; z-index:20; pointer-events:none; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    @media (max-width:780px) { .nav { padding:0 20px; height:68px; } .nav-links a { display:none; } .hero { padding:48px 20px 66px; display:block; } h1 { font-size:58px; } .hero-copy { font-size:15px; } .hero-art { min-height:350px; margin-top:35px; } .photo-stack { height:350px; } .photo.one { width:195px; height:245px; } .photo.two { width:180px; height:225px; } .photo.three { width:150px; height:160px; } .section { padding:42px 20px 65px; } .section-head { display:block; } .section-head p { margin-top:14px; } h2 { font-size:37px; } .event-grid,.steps { grid-template-columns:1fr; } .event-card { min-height:300px; } .steps { gap:15px; } .step { padding:15px 0; border-bottom:1px solid rgba(16,44,37,.15); } .form-grid { grid-template-columns:1fr; } .field.full { grid-column:auto; } .modal-card { padding:23px; } .qr-box { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <nav class="nav">
+      <div class="brand"><span class="brand-mark">g</span> gathered</div>
+      <div class="nav-links"><a href="#how">How it works</a><button class="admin-button" id="adminOpen">Admin space</button></div>
+    </nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Your memories, waiting</p>
+        <h1>Every moment.<br><em>Found.</em></h1>
+        <p class="hero-copy">One quick selfie finds every photo you appear in. No scrolling through hundreds of shots. Just your moments, from every part of the celebration.</p>
+        <div class="hero-actions"><button class="primary" id="findPhotos">Find my photos <span aria-hidden="true">↗</span></button></div>
+      </div>
+      <div class="hero-art"><div class="empty-gallery"><div><strong>No event photos yet</strong>Create an event in Admin space to add photos.</div></div></div>
+    </section>
+
+    <section class="section how" id="how"><div class="section-head"><h2>Three easy<br>steps.</h2><p>Made for a busy celebration. It takes less than a minute to get started.</p></div><div class="steps"><div class="step"><div class="step-number">01</div><h3>Scan the event QR</h3><p>Find the Gathered QR at the venue or open the shared event link on your phone.</p></div><div class="step"><div class="step-number">02</div><h3>Share one clear selfie</h3><p>Take or upload a well-lit face photo. We use it to look through the event album.</p></div><div class="step"><div class="step-number">03</div><h3>Get your moments</h3><p>Enter your details and we will show every event photo where your face appears.</p></div></div></section>
+  </main>
+
+  <div class="modal" id="guestModal" role="dialog" aria-modal="true" aria-labelledby="guestTitle">
+    <div class="modal-card"><div class="modal-top"><div><p class="eyebrow">Guest access</p><h2 id="guestTitle">Find your photos</h2></div><button class="close" data-close aria-label="Close">×</button></div>
+        <form id="guestForm"><div class="upload-zone"><img class="preview" id="preview" alt="Your selfie preview"><strong>Start with a clear face photo</strong><p>Good light, face the camera, no sunglasses.</p><label class="file-label" for="faceUpload">Take or upload photo</label><input id="faceUpload" type="file" accept="image/*" capture="user" required></div><div class="form-grid"><div class="field"><label for="guestName">Your name</label><input id="guestName" placeholder="e.g. Sia Sharma" required></div><div class="field"><label for="guestContact">Phone or email</label><input id="guestContact" placeholder="For your private link" required></div><div class="field full"><label for="guestEvent">Which event?</label><select id="guestEvent"><option value="All events">Select an event QR first</option></select></div></div><button class="primary form-submit" type="submit">Show my photos <span aria-hidden="true">↗</span></button></form>
+      <div class="success" id="success"><div class="success-icon">✓</div><h3>We found your moments.</h3><p>Your private event gallery is ready.</p><div class="results show"><div class="results-head"><h3>My Photos</h3><span>0 found</span></div><div class="mini-gallery"></div></div></div>
+    </div>
+  </div>
+
+  <div class="modal" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+    <div class="modal-card">
+      <div class="modal-top"><div><p class="eyebrow">Event manager</p><h2 id="adminTitle">Create an event QR</h2></div><button class="close" data-close aria-label="Close">×</button></div>
+      <form id="adminForm">
+        <div class="form-grid">
+          <div class="field full"><label for="eventName">Event name</label><input id="eventName" placeholder="Enter event name" required></div>
+          <div class="field"><label for="eventDate">Date</label><input id="eventDate" type="date" required></div>
+          <div class="field"><label for="eventPhotos">Upload photos</label><input id="eventPhotos" type="file" accept="image/*,.heic,.heif" multiple required></div>
+        </div>
+        <button class="primary form-submit" type="submit">Generate event QR</button>
+      </form>
+      <div class="admin-card" id="qrResult"><div class="qr-box"><div class="qr" aria-label="Generated event QR code"></div><div class="qr-copy"><strong id="qrEventName"></strong><p>Guests scan this code to open the event's photo finder.</p><button class="secondary" id="copyLink" type="button">Copy guest link</button></div></div></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Guest link copied</div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const guestModal = document.querySelector('#guestModal');
+    const adminModal = document.querySelector('#adminModal');
+    const toast = document.querySelector('#toast');
+    const qr = document.querySelector('.qr');
+    let guestLink = `${location.origin}/?event=Raj%20%26%20Simran`;
+    const openModal = modal => modal.classList.add('open');
+    const closeModals = () => document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('open'));
+    document.querySelector('#findPhotos').addEventListener('click', () => openModal(guestModal));
+    document.querySelector('#adminOpen').addEventListener('click', () => openModal(adminModal));
+    document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click', closeModals));
+    document.querySelectorAll('.modal').forEach(modal => modal.addEventListener('click', event => { if (event.target === modal) closeModals(); }));
+    document.querySelector('#faceUpload').addEventListener('change', event => { const file = event.target.files[0]; if (!file) return; const preview = document.querySelector('#preview'); preview.src = URL.createObjectURL(file); preview.style.display = 'block'; });
+    document.querySelector('#guestForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const submit = event.target.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      submit.textContent = 'Finding your photos...';
+      const formData = new FormData();
+      formData.append('reference', document.querySelector('#faceUpload').files[0]);
+      formData.append('folder_name', document.querySelector('#guestName').value.trim());
+      formData.append('event', document.querySelector('#guestEvent').value);
+      try {
+        const response = await fetch('/api/group', { method: 'POST', body: formData });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || 'Could not find your photos.');
+        event.target.style.display = 'none';
+        document.querySelector('#success').style.display = 'block';
+        document.querySelector('.results-head span').textContent = `${result.matched} found`;
+        document.querySelector('.mini-gallery').innerHTML = result.images.map(image => `<img src="${image}" alt="Matched memory">`).join('');
+      } catch (error) {
+        alert(error.message);
+        submit.disabled = false;
+        submit.innerHTML = 'Show my photos <span aria-hidden="true">↗</span>';
+      }
+    });
+    const eventFromQr = new URLSearchParams(location.search).get('event');
+    if (eventFromQr) {
+      const eventSelect = document.querySelector('#guestEvent');
+      const eventSlug = eventFromQr.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      eventSelect.replaceChildren(new Option(eventFromQr.replaceAll('-', ' '), eventSlug));
+      eventSelect.value = eventSlug;
+      setTimeout(() => openModal(guestModal), 150);
+    }
+    document.querySelector('#adminForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const submit = event.target.querySelector('button[type="submit"]');
+      const eventName = document.querySelector('#eventName').value.trim();
+      const photos = document.querySelector('#eventPhotos').files;
+      if (!photos.length) { alert('Upload at least one event photo.'); return; }
+      submit.disabled = true;
+      submit.textContent = 'Uploading photos...';
+      const formData = new FormData();
+      formData.append('event_name', eventName);
+      formData.append('event_date', document.querySelector('#eventDate').value);
+      for (const photo of photos) formData.append('photos', photo);
+      try {
+        const response = await fetch('/api/events', { method: 'POST', body: formData });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || 'Could not upload event photos.');
+        guestLink = `${location.origin}${result.url}`;
+        const skippedMessage = result.skipped.length ? `, ${result.skipped.length} skipped` : '';
+        document.querySelector('#qrEventName').textContent = `${eventName} (${result.photos} photos saved${skippedMessage})`;
+        if (result.skipped.length) {
+          const skippedNames = result.skipped.map(file => `${file.name}: ${file.reason}`).join('\n');
+          alert(`Skipped files:\n\n${skippedNames}`);
+        }
+        qr.replaceChildren();
+        new QRCode(qr, {
+          text: guestLink,
+          width: 140,
+          height: 140,
+          colorDark: '#102c25',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+        document.querySelector('#qrResult').classList.add('open');
+      } catch (error) {
+        alert(error.message);
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'Generate event QR';
+      }
+    });
+    document.querySelector('#copyLink').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(guestLink); } catch (error) {}
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    });
+  </script>
+</body>
+</html>
