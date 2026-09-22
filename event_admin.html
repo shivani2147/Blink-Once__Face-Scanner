@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f6f0">
+  <title>Event Photos | Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+  <style>
+    :root { 
+      --bg-dark: #0a0b10; 
+      --bg-glow1: #2a1435; 
+      --bg-glow2: #0f1c3f;
+      --text-main: #f0f2f5; 
+      --text-muted: #9ba1a6; 
+      --accent: #ff477e; 
+      --accent-glow: rgba(255, 71, 126, 0.5);
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --card-bg: rgba(20, 22, 30, 0.65);
+      --nav-bg: rgba(10, 11, 16, 0.6);
+      --input-bg: rgba(0, 0, 0, 0.35);
+      --modal-bg: rgba(5, 5, 8, 0.82);
+      --modal-card-bg: rgba(20, 22, 30, 0.85);
+      --badge: rgba(255, 255, 255, 0.15);
+      --shadow: 0 22px 60px rgba(0,0,0,0.5); 
+    }
+    body.light-mode {
+      --bg-dark: #f8fafc;
+      --bg-glow1: #ffe4ef;
+      --bg-glow2: #e0f2fe;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #ff3366;
+      --accent-glow: rgba(255, 51, 102, 0.25);
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(226, 232, 240, 0.8);
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --nav-bg: rgba(255, 255, 255, 0.8);
+      --input-bg: #ffffff;
+      --modal-bg: rgba(15, 23, 42, 0.4);
+      --modal-card-bg: #ffffff;
+      --badge: rgba(255, 51, 102, 0.12);
+      --shadow: 0 15px 35px rgba(15, 23, 42, 0.08); 
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--text-main); background-color:var(--bg-dark); font-family:'Outfit',sans-serif; min-height:100vh; background-image: radial-gradient(circle at 80% -20%, var(--bg-glow1) 0%, transparent 50%), radial-gradient(circle at 0% 120%, var(--bg-glow2) 0%, transparent 50%); background-attachment: fixed; }
+    button,input { font:inherit; }
+    button { cursor:pointer; border:0; transition:all 0.3s ease; }
+    
+    .nav { height:80px; display:flex; align-items:center; justify-content:space-between; padding:0 32px; background:var(--nav-bg); border-bottom:1px solid var(--glass-border); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50;}
+    .brand { font-weight:700; font-size:22px; color:var(--text-main); text-decoration:none; font-family: Fraunces,serif; letter-spacing: 1px; }
+    .nav-links { display:flex; gap:15px; align-items:center; }
+    .theme-toggle { background:none; color:var(--text-main); font-size:20px; display:flex; align-items:center; padding:5px; border-radius:50%; border:1px solid transparent; transition: all 0.2s; }
+    .theme-toggle:hover { border-color: var(--glass-border); background: var(--glass-bg); }
+    .nav-link { color:var(--text-muted); text-decoration:none; font-weight:500; font-size:14px; transition: color 0.2s; }
+    .nav-link:hover { color: var(--accent); }
+    
+    .container { max-width:1300px; margin:40px auto; padding:0 32px 100px; }
+    
+    .header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; margin-bottom:40px; }
+    .header h1 { font-family: Fraunces,serif; font-size:42px; margin:0 0 10px; font-weight: 500; color:var(--text-main); }
+    .header p { color:var(--text-muted); font-size:16px; margin:0; }
+
+    .header-actions { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .btn-action { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:12px; font-weight:600; font-size:14px; text-decoration:none; cursor:pointer; transition: all 0.3s ease; border:0; }
+    .btn-secondary { background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-main); }
+    .btn-secondary:hover { background:rgba(255,255,255,0.2); border-color:var(--accent); transform:translateY(-2px); }
+    .btn-primary { background:linear-gradient(135deg, var(--accent), #ff7b9f); color:#fff; box-shadow:0 6px 20px var(--accent-glow); }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 10px 28px var(--accent-glow); }
+    
+    /* Modal styles */
+    .modal { display:none; position:fixed; inset:0; z-index:100; background:var(--modal-bg); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding:20px; align-items:center; justify-content:center; }
+    .modal.open { display:flex; }
+    .modal-card { width:min(100%, 540px); background:var(--modal-card-bg); border:1px solid var(--glass-border); border-radius:24px; padding:36px; max-height:90vh; overflow-y:auto; position:relative; box-shadow: var(--shadow); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); animation:rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    @keyframes rise { from { opacity:0; transform:translateY(30px) scale(0.95); } to { opacity:1; transform:none; } }
+    .modal-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+    .close { background:none; border:none; font-size:28px; color:var(--text-muted); cursor:pointer; padding:0; line-height:1; transition:color 0.2s; }
+    .close:hover { color:var(--accent); }
+    
+    .upload-zone { border:2px dashed var(--glass-border); border-radius:18px; background:var(--input-bg); padding:35px 20px; text-align:center; margin-bottom:20px; cursor:pointer; transition: all 0.3s; }
+    .upload-zone:hover, .upload-zone.dragover { border-color:var(--accent); background:rgba(255,71,126,0.05); }
+    .file-label { display:inline-block; background:var(--glass-bg); border: 1px solid var(--glass-border); color:var(--text-main); border-radius:20px; padding:10px 20px; font-size:14px; font-weight:600; transition: background 0.2s; cursor: pointer; }
+    .file-label:hover { background: rgba(255,255,255,0.2); }
+    
+    .photo-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:20px; }
+    
+    .photo-card { position:relative; aspect-ratio:1; border-radius:16px; overflow:hidden; border: 2px solid transparent; cursor:pointer; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; background: var(--card-bg); box-shadow: var(--shadow); }
+    .photo-card img { width:100%; height:100%; object-fit:cover; display:block; transition: transform 0.3s ease; pointer-events: none; }
+    .photo-card:hover img { transform: scale(1.05); }
+    
+    .photo-card.selected { border-color: var(--accent); box-shadow: 0 0 20px var(--accent-glow); transform: scale(0.96); }
+    .photo-card.selected img { opacity: 0.7; }
+    
+    .check-icon { position:absolute; top:12px; right:12px; width:28px; height:28px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; opacity:0; transform: scale(0.5); transition: all 0.1s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none;}
+    .photo-card.selected .check-icon { opacity:1; transform: scale(1); }
+    
+    .empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; background:var(--glass-bg); border-radius:16px; border:1.5px dashed var(--glass-border); color:var(--text-muted); backdrop-filter: blur(10px); }
+    
+    /* Action Bar */
+    .action-bar { position:fixed; bottom:30px; left:50%; transform:translate(-50%, 100px); background:var(--nav-bg); border:1px solid var(--glass-border); border-radius:30px; padding:12px 24px; display:flex; align-items:center; gap:20px; box-shadow: var(--shadow); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); opacity:0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 100; }
+    .action-bar.visible { transform:translate(-50%, 0); opacity:1; }
+    .selection-count { font-weight:600; color:var(--text-main); }
+    .btn-delete { background:linear-gradient(135deg, #ef4444, #dc2626); color:#fff; padding:10px 20px; border-radius:20px; font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px; box-shadow:0 5px 15px rgba(239, 68, 68, 0.4); }
+    .btn-delete:hover { transform: translateY(-2px); box-shadow:0 8px 25px rgba(239, 68, 68, 0.6); }
+    .btn-delete:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Lightbox Modal */
+    .lightbox { display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.92); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); align-items:center; justify-content:center; flex-direction:column; padding:20px; }
+    .lightbox.open { display:flex; animation: fadeIn 0.25s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .lightbox-content { max-width:90vw; max-height:80vh; object-fit:contain; border-radius:12px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); transition: transform 0.2s ease; }
+    .lightbox-toolbar { position:absolute; top:20px; left:20px; right:20px; display:flex; justify-content:space-between; align-items:center; color:#fff; z-index: 10; }
+    .lightbox-title { font-size:14px; font-weight:500; background:rgba(255,255,255,0.1); padding:8px 16px; border-radius:20px; backdrop-filter:blur(10px); }
+    .lightbox-btn { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:8px 16px; border-radius:12px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-weight:600; font-size:13px; backdrop-filter:blur(10px); transition:all 0.2s; text-decoration:none; }
+    .lightbox-btn:hover { background:rgba(255,255,255,0.25); transform:scale(1.05); }
+    .lightbox-nav { position:absolute; top:50%; transform:translateY(-50%); width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.2); color:#fff; display:grid; place-items:center; cursor:pointer; backdrop-filter:blur(10px); font-size:24px; transition:all 0.2s; user-select:none; }
+    .lightbox-nav:hover { background:var(--accent); border-color:var(--accent); box-shadow:0 0 20px var(--accent-glow); }
+    .lightbox-prev { left:20px; }
+    .lightbox-next { right:20px; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/admin" class="brand">Gathered</a>
+    <div class="nav-links">
+      <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+        <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+      <a href="/admin" class="nav-link">← Back to Dashboard</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="header">
+      <div>
+        <h1 id="eventTitle">Event Photos</h1>
+        <p id="eventSubtitle">Select photos to manage</p>
+      </div>
+      <div class="header-actions">
+        <button id="downloadAllBtn" class="btn-action btn-secondary" title="Download all photos as ZIP">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download All
+        </button>
+        <button id="uploadMediaBtn" class="btn-action btn-primary" title="Upload new media to this event">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Upload Media
+        </button>
+        <button id="toggleSelectionModeBtn" class="btn-action btn-secondary">Delete Photos</button>
+        <button id="selectAllBtn" class="btn-action btn-secondary" style="display:none;">Select All</button>
+      </div>
+    </div>
+    
+    <div class="photo-grid" id="photoGrid">
+      <div class="empty-state">Loading photos...</div>
+    </div>
+  </main>
+
+  <div class="modal" id="uploadMediaModal" role="dialog" aria-modal="true" aria-labelledby="uploadModalTitle">
+    <div class="modal-card">
+      <div class="modal-top">
+        <div>
+          <p style="color:var(--accent); font-size:12px; font-weight:700; letter-spacing:1px; margin:0 0 4px; text-transform:uppercase;">ADD MEDIA</p>
+          <h2 id="uploadModalTitle" style="font-family:Fraunces,serif; font-size:32px; margin:0; font-weight:500;">Upload Media</h2>
+        </div>
+        <button class="close" id="closeUploadModal" aria-label="Close">×</button>
+      </div>
+
+      <form id="uploadMediaForm">
+        <div class="upload-zone" id="uploadDropZone">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px; opacity:0.9;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <strong style="display:block; font-size:18px; margin-bottom:6px;">Choose photos or drag & drop</strong>
+          <p style="color:var(--text-muted); font-size:13px; margin:0 0 16px;">Supports JPG, PNG, WEBP, HEIC files</p>
+          <span class="file-label">Browse Files</span>
+          <input id="mediaFilesInput" type="file" accept="image/*,.heic,.heif" multiple style="display:none;">
+        </div>
+
+        <div id="fileSelectionStatus" style="display:none; font-size:14px; color:var(--text-main); background:rgba(255,255,255,0.05); padding:12px 16px; border-radius:12px; border:1px solid var(--glass-border); margin-bottom:20px; text-align:center;">
+          <strong id="selectedFilesCount">0 files selected</strong>
+        </div>
+
+        <button type="submit" id="submitUploadBtn" class="btn-action btn-primary" style="width:100%; justify-content:center; padding:14px; border-radius:14px; font-size:16px;">
+          Upload to Gallery
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-toolbar">
+      <span class="lightbox-title" id="lightboxCounter">Photo 1 of 1</span>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <a id="lightboxDownloadBtn" class="lightbox-btn" download target="_blank">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download Original
+        </a>
+        <button class="lightbox-btn" id="closeLightbox">✕</button>
+      </div>
+    </div>
+    <div class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</div>
+    <img id="lightboxImg" class="lightbox-content" src="" alt="Full view">
+    <div class="lightbox-nav lightbox-next" id="lightboxNext">›</div>
+  </div>
+
+  <div class="action-bar" id="actionBar">
+    <div class="selection-count"><span id="selCount">0</span> Selected</div>
+    <button class="btn-delete" id="deleteBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      Delete Photos
+    </button>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const slug = urlParams.get('slug');
+    
+    if (!slug) {
+      document.getElementById('photoGrid').innerHTML = '<div class="empty-state">Event not specified. Return to dashboard.</div>';
+      return;
+    }
+    
+    // Set title based on slug temporarily
+    document.getElementById('eventTitle').textContent = slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    const grid = document.getElementById('photoGrid');
+    const actionBar = document.getElementById('actionBar');
+    const selCount = document.getElementById('selCount');
+    let photos = [];
+    let selectedSet = new Set();
+    let isSelectionMode = false;
+    
+    const fetchPhotos = async () => {
+      try {
+        const res = await fetch(`/api/admin/events/${slug}/photos`);
+        if (!res.ok) throw new Error('Event not found');
+        const data = await res.json();
+        photos = data.images || [];
+        renderPhotos();
+      } catch (e) {
+        grid.innerHTML = `<div class="empty-state">Error loading photos.</div>`;
+      }
+    };
+    
+    const updateActionBar = () => {
+      if (isSelectionMode) {
+        actionBar.classList.add('visible');
+        selCount.textContent = selectedSet.size;
+        document.getElementById('deleteBtn').disabled = selectedSet.size === 0;
+      } else {
+        actionBar.classList.remove('visible');
+      }
+    };
+    
+    // Download All photos as ZIP
+    document.getElementById('downloadAllBtn').addEventListener('click', () => {
+      if (!photos || photos.length === 0) {
+        alert('No photos in gallery to download.');
+        return;
+      }
+      window.location.href = `/api/admin/events/${slug}/download`;
+    });
+
+    // Upload Media Modal & Handlers
+    const uploadModal = document.getElementById('uploadMediaModal');
+    const uploadBtn = document.getElementById('uploadMediaBtn');
+    const closeUploadBtn = document.getElementById('closeUploadModal');
+    const dropZone = document.getElementById('uploadDropZone');
+    const fileInput = document.getElementById('mediaFilesInput');
+    const selectionStatus = document.getElementById('fileSelectionStatus');
+    const selectedFilesCount = document.getElementById('selectedFilesCount');
+    const uploadForm = document.getElementById('uploadMediaForm');
+
+    const openUploadModal = () => uploadModal.classList.add('open');
+    const closeUploadModal = () => {
+      uploadModal.classList.remove('open');
+      uploadForm.reset();
+      selectionStatus.style.display = 'none';
+    };
+
+    uploadBtn.addEventListener('click', openUploadModal);
+    closeUploadBtn.addEventListener('click', closeUploadModal);
+    uploadModal.addEventListener('click', (e) => { if (e.target === uploadModal) closeUploadModal(); });
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        fileInput.files = e.dataTransfer.files;
+        updateFileStatus();
+      }
+    });
+
+    fileInput.addEventListener('change', updateFileStatus);
+
+    function updateFileStatus() {
+      const count = fileInput.files.length;
+      if (count > 0) {
+        selectionStatus.style.display = 'block';
+        selectedFilesCount.textContent = `${count} file${count > 1 ? 's' : ''} selected for upload`;
+      } else {
+        selectionStatus.style.display = 'none';
+      }
+    }
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select at least one photo to upload.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitUploadBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Uploading media...';
+
+      const formData = new FormData();
+      for (const file of fileInput.files) {
+        formData.append('photos', file);
+      }
+
+      try {
+        const res = await fetch(`/api/admin/events/${slug}/photos`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Upload failed');
+
+        closeUploadModal();
+        await fetchPhotos();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Upload to Gallery';
+      }
+    });
+
+    document.getElementById('toggleSelectionModeBtn').addEventListener('click', (e) => {
+      isSelectionMode = !isSelectionMode;
+      const btn = e.target;
+      const selectAllBtn = document.getElementById('selectAllBtn');
+      
+      if (isSelectionMode) {
+        btn.textContent = 'Cancel';
+        btn.style.background = 'var(--glass-border)';
+        selectAllBtn.style.display = 'inline-block';
+        document.getElementById('eventSubtitle').textContent = 'Select photos to delete';
+        updateActionBar();
+      } else {
+        btn.textContent = 'Delete Photos';
+        btn.style.background = 'var(--glass-bg)';
+        selectAllBtn.style.display = 'none';
+        document.getElementById('eventSubtitle').textContent = `${photos.length} photos in gallery`;
+        
+        selectedSet.clear();
+        document.querySelectorAll('.photo-card').forEach(c => c.classList.remove('selected'));
+        updateActionBar();
+      }
+    });
+    
+    let currentPhotoIndex = 0;
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxCounter = document.getElementById('lightboxCounter');
+    const lightboxDownloadBtn = document.getElementById('lightboxDownloadBtn');
+
+    window.handleCardClick = (index, filename, cardElement) => {
+      if (isSelectionMode) {
+        toggleSelect(filename, cardElement);
+      } else {
+        openLightbox(index);
+      }
+    };
+
+    window.toggleSelect = (filename, cardElement) => {
+      if (!isSelectionMode) return;
+      
+      if (selectedSet.has(filename)) {
+        selectedSet.delete(filename);
+        cardElement.classList.remove('selected');
+      } else {
+        selectedSet.add(filename);
+        cardElement.classList.add('selected');
+      }
+      updateActionBar();
+    };
+
+    const openLightbox = (index) => {
+      if (index < 0 || index >= photos.length) return;
+      currentPhotoIndex = index;
+      const photo = photos[index];
+      lightboxImg.src = photo.url;
+      lightboxCounter.textContent = `${index + 1} of ${photos.length}`;
+      lightboxDownloadBtn.href = photo.url;
+      lightboxDownloadBtn.setAttribute('download', photo.filename);
+      lightbox.classList.add('open');
+    };
+
+    const closeLightbox = () => lightbox.classList.remove('open');
+
+    document.getElementById('closeLightbox').addEventListener('click', closeLightbox);
+    document.getElementById('lightboxPrev').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openLightbox((currentPhotoIndex - 1 + photos.length) % photos.length);
+    });
+    document.getElementById('lightboxNext').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openLightbox((currentPhotoIndex + 1) % photos.length);
+    });
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (!lightbox.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowLeft') openLightbox((currentPhotoIndex - 1 + photos.length) % photos.length);
+      if (e.key === 'ArrowRight') openLightbox((currentPhotoIndex + 1) % photos.length);
+    });
+    
+    const renderPhotos = () => {
+      if (photos.length === 0) {
+        grid.innerHTML = `<div class="empty-state">No photos found for this event.</div>`;
+        return;
+      }
+      
+      grid.innerHTML = photos.map((p, index) => `
+        <div class="photo-card ${selectedSet.has(p.filename) ? 'selected' : ''}" onclick="handleCardClick(${index}, '${p.filename.replace(/'/g, "\\'")}', this)">
+          <img src="${p.thumbnail || p.url}" alt="Photo" loading="lazy" decoding="async">
+          <div class="check-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+        </div>
+      `).join('');
+      
+      if (!isSelectionMode) {
+        document.getElementById('eventSubtitle').textContent = `${photos.length} photos in gallery`;
+      }
+    };
+    
+    document.getElementById('selectAllBtn').addEventListener('click', () => {
+      const allSelected = selectedSet.size === photos.length && photos.length > 0;
+      if (allSelected) {
+        // Deselect all
+        selectedSet.clear();
+        document.querySelectorAll('.photo-card').forEach(c => c.classList.remove('selected'));
+      } else {
+        // Select all
+        photos.forEach(p => selectedSet.add(p.filename));
+        document.querySelectorAll('.photo-card').forEach(c => c.classList.add('selected'));
+      }
+      updateActionBar();
+    });
+    
+    document.getElementById('deleteBtn').addEventListener('click', async (e) => {
+      if (selectedSet.size === 0) return;
+      if (!confirm(`Are you sure you want to permanently delete ${selectedSet.size} photos?`)) return;
+      
+      const btn = e.target.closest('button');
+      btn.disabled = true;
+      btn.innerHTML = 'Deleting...';
+      
+      try {
+        const res = await fetch(`/api/admin/events/${slug}/photos`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(Array.from(selectedSet))
+        });
+        
+        if (!res.ok) throw new Error('Delete failed');
+        
+        selectedSet.clear();
+        isSelectionMode = false;
+        document.getElementById('toggleSelectionModeBtn').textContent = 'Delete Photos';
+        document.getElementById('toggleSelectionModeBtn').style.background = 'var(--glass-bg)';
+        document.getElementById('selectAllBtn').style.display = 'none';
+        
+        updateActionBar();
+        await fetchPhotos();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Delete Photos`;
+      }
+    });
+
+    fetchPhotos();
+    
+    // Theme Toggle
+    const themeBtn = document.getElementById('themeToggle');
+    const moonIcon = document.getElementById('moonIcon');
+    const sunIcon = document.getElementById('sunIcon');
+    const savedTheme = localStorage.getItem('theme');
+    
+    if (savedTheme === 'light') {
+      document.body.classList.add('light-mode');
+      moonIcon.style.display = 'block';
+      sunIcon.style.display = 'none';
+    }
+    
+    themeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      const isLight = document.body.classList.contains('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      moonIcon.style.display = isLight ? 'block' : 'none';
+      sunIcon.style.display = isLight ? 'none' : 'block';
+    });
+  });
+  </script>
+</body>
+</html>
