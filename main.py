@@ -316,29 +316,62 @@ def upload_event_photos(
 
     for photo in photos:
         if not photo.filename:
-            skipped.append({"name": "unnamed file", "reason": "Missing filename"})
+            skipped.append({
+                "name": "unnamed file",
+                "reason": "Missing filename"
+            })
             continue
+
         filename = Path(photo.filename).name
         extension = Path(filename).suffix.lower()
+
         if extension not in IMAGE_EXTENSIONS and extension not in HEIC_EXTENSIONS:
-            skipped.append({"name": filename, "reason": "Unsupported image format"})
+            skipped.append({
+                "name": filename,
+                "reason": "Unsupported image format"
+            })
             continue
+
         if extension in HEIC_EXTENSIONS:
             filename = f"{Path(filename).stem}.jpg"
+
         destination = event_dir / filename
+
         duplicate_number = 1
         while destination.exists():
-            destination = event_dir / f"{Path(filename).stem}_{duplicate_number}{Path(filename).suffix}"
+            destination = event_dir / (
+                f"{Path(filename).stem}_{duplicate_number}"
+                f"{Path(filename).suffix}"
+            )
             duplicate_number += 1
 
         final_filename = destination.name
 
-        if extension in HEIC_EXTENSIONS:
-            with Image.open(photo.file) as image:
-                image.convert("RGB").save(destination, format="JPEG", quality=95)
-        else:
-            with destination.open("wb") as output:
-                shutil.copyfileobj(photo.file, output)
+        try:
+            if extension in HEIC_EXTENSIONS:
+                with Image.open(photo.file) as image:
+                    image.convert("RGB").save(
+                        destination,
+                        format="JPEG",
+                        quality=95
+                    )
+            else:
+                with destination.open("wb") as output:
+                    shutil.copyfileobj(photo.file, output)
+
+        except Image.DecompressionBombError:
+            skipped.append({
+                "name": photo.filename,
+                "reason": "Image resolution is too large to process safely"
+            })
+            continue
+
+        except Exception as e:
+            skipped.append({
+                "name": photo.filename,
+                "reason": f"Failed to process image: {str(e)}"
+            })
+            continue
 
         if not first_saved_file:
             first_saved_file = final_filename
@@ -346,17 +379,24 @@ def upload_event_photos(
         saved += 1
 
     if saved == 0:
-        raise HTTPException(status_code=400, detail="Upload at least one valid image or media file.")
+        raise HTTPException(
+            status_code=400,
+            detail="Upload at least one valid image or media file."
+        )
 
     metadata_file = event_dir / "metadata.json"
+
     if metadata_file.exists():
         try:
             with open(metadata_file, "r") as f:
                 meta = json.load(f)
+
             if not meta.get("cover_photo") and first_saved_file:
                 meta["cover_photo"] = first_saved_file
+
                 with open(metadata_file, "w") as f:
                     json.dump(meta, f)
+
         except Exception:
             pass
 

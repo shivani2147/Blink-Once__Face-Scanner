@@ -1,6 +1,10 @@
 To run the code : 
  - uvicorn main:app --reload
 
+Add on Github : 
+ - git add .
+ - git commit -m "Added changes"
+  - git push origin main
 
 
 VPS : 
