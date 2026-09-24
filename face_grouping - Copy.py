@@ -20,7 +20,7 @@ DEFAULT_OUTPUT_DIR = PROJECT_DIR / "media" / "grouped"
 
 
 class FaceGrouper:
-    def __init__(self, similarity_threshold: float = 0.35) -> None:
+    def __init__(self, similarity_threshold: float = 0.45) -> None:
         self.similarity_threshold = similarity_threshold
         self.face_app = FaceAnalysis(
             name="buffalo_l",

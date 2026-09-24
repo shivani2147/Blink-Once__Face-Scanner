@@ -5,12 +5,18 @@ from __future__ import annotations
 import re
 import shutil
 import threading
+import warnings
 from pathlib import Path
 from tkinter import Tk, filedialog, messagebox, StringVar
 from tkinter.ttk import Button, Entry, Label, Frame
 import cv2
 import numpy as np
 from insightface.app import FaceAnalysis
+import onnxruntime
+
+onnxruntime.set_default_logger_severity(3)
+warnings.filterwarnings("ignore", category=FutureWarning, module="insightface")
+warnings.filterwarnings("ignore", category=UserWarning, module="onnxruntime")
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
@@ -20,11 +26,11 @@ DEFAULT_OUTPUT_DIR = PROJECT_DIR / "media" / "grouped"
 
 
 class FaceGrouper:
-    def __init__(self, similarity_threshold: float = 0.35) -> None:
+    def __init__(self, similarity_threshold: float = 0.45) -> None:
         self.similarity_threshold = similarity_threshold
         self.face_app = FaceAnalysis(
             name="buffalo_l",
-            providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
+            providers=["CPUExecutionProvider"],
         )
         self.face_app.prepare(ctx_id=0, det_size=(640, 640), det_thresh=0.35)
 
@@ -53,6 +59,7 @@ class FaceGrouper:
         event_files = sorted(
             path for path in event_images_dir.rglob("*")
             if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+            and "guests_profiles" not in path.parts
         )
         if not event_files:
             raise ValueError(f"No images were found in: {event_images_dir}")

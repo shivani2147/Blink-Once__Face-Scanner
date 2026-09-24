@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102c25">
+  <title>Gallery | Gathered</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+  <style>
+    :root { 
+      --bg-dark: #0a0b10; 
+      --bg-glow1: #2a1435; 
+      --bg-glow2: #0f1c3f;
+      --text-main: #f0f2f5; 
+      --text-muted: #9ba1a6; 
+      --accent: #ff477e; 
+      --accent-glow: rgba(255, 71, 126, 0.5);
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --card-bg: rgba(20, 22, 30, 0.65);
+      --nav-bg: rgba(10, 11, 16, 0.6);
+      --shadow: 0 22px 60px rgba(0,0,0,0.5); 
+    }
+    body.light-mode {
+      --bg-dark: #f8fafc;
+      --bg-glow1: #ffe4ef;
+      --bg-glow2: #e0f2fe;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #ff3366;
+      --accent-glow: rgba(255, 51, 102, 0.25);
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(226, 232, 240, 0.8);
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --nav-bg: rgba(255, 255, 255, 0.8);
+      --shadow: 0 15px 35px rgba(15, 23, 42, 0.08); 
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--text-main); background-color:var(--bg-dark); font-family:'Outfit',sans-serif; overflow-x: hidden; }
+    
+    .app { 
+      min-height:100vh; 
+      background: radial-gradient(circle at 80% -20%, var(--bg-glow1) 0%, transparent 50%),
+                  radial-gradient(circle at 0% 120%, var(--bg-glow2) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+    
+    button { cursor:pointer; border:0; transition: all 0.3s ease; }
+    
+    /* Nav */
+    .nav { height:80px; display:flex; align-items:center; justify-content:space-between; max-width:1240px; margin:auto; padding:0 32px; border-bottom: 1px solid var(--glass-border); }
+    .brand { display:flex; gap:12px; align-items:center; font-weight:600; letter-spacing:1px; font-size:22px; text-transform: uppercase; color:var(--text-main); text-decoration:none; }
+    .brand-mark { width:38px; height:38px; display:grid; place-items:center; border-radius:14px 14px 14px 4px; color:#fff; background:linear-gradient(135deg, var(--accent), #ff7b9f); font-family:Fraunces,serif; font-size:24px; box-shadow: 0 0 20px var(--accent-glow); }
+    
+    /* Main Content */
+    .container { max-width: 800px; margin: 40px auto; padding: 0 20px; display: flex; flex-direction: column; height: calc(100vh - 160px); }
+    
+    /* Tabs */
+    .tabs { display: flex; gap: 20px; }
+    .tab-btn { background: none; color: var(--text-muted); font-size: 18px; font-weight: 600; padding: 10px 0; position: relative; }
+    .tab-btn.active { color: var(--accent); }
+    .tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+    .tab-btn:hover:not(.active) { color: var(--text-main); }
+    
+    .tab-content { display: none; animation: fadein 0.4s ease; overflow-y: auto; flex: 1; padding-right: 10px; }
+    .tab-content::-webkit-scrollbar { width: 6px; }
+    .tab-content::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
+    .tab-content::-webkit-scrollbar-track { background: transparent; }
+    .tab-content.active { display: block; }
+    
+    @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    
+    /* My Photos - Vertical Feed */
+    .vertical-feed { display: flex; flex-direction: column; gap: 30px; align-items: center; }
+    .feed-item { width: 100%; max-width: 600px; background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); backdrop-filter: blur(10px); }
+    .feed-item img { width: 100%; display: block; }
+    .feed-footer { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); }
+    
+    .summary-box { text-align: center; padding: 30px; margin-top: 20px; border-top: 1px dashed var(--glass-border); }
+    .summary-box h3 { font-family: Fraunces, serif; font-size: 24px; margin-bottom: 15px; color: var(--text-main); }
+    
+    /* All Photos - Grid */
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+    .grid-item { aspect-ratio: 1; overflow: hidden; border-radius: 12px; border: 1px solid var(--glass-border); background: var(--glass-bg); }
+    .grid-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+    .grid-item img:hover { transform: scale(1.05); }
+    
+    .primary-btn { border-radius:24px; padding:12px 24px; font-weight:600; font-size:15px; color:#fff; background:linear-gradient(135deg, var(--accent), #ff7b9f); box-shadow:0 8px 25px var(--accent-glow); display: inline-flex; align-items: center; gap: 8px; }
+    .primary-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 35px var(--accent-glow); }
+    
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); background: var(--glass-bg); border-radius: 16px; border: 1px dashed var(--glass-border); grid-column: 1 / -1; }
+    
+    /* Modal Popup */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s ease; }
+    .modal-overlay.open { display: flex; opacity: 1; }
+    .modal-content { position: relative; width: 500px; max-width: 90vw; }
+    .modal-content img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; box-shadow: var(--shadow); }
+    .modal-close { position: absolute; top: -15px; right: -15px; width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: white; border: 2px solid white; font-size: 20px; font-weight: bold; display: grid; place-items: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 10; }
+  </style>
+</head>
+<body>
+  <div class="modal-overlay" id="imageModal" onclick="closeImageModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeImageModal()">×</button>
+      <img id="modalImage" src="" alt="Popup Photo">
+    </div>
+  </div>
+  <script>
+    function openImageModal(url) {
+      document.getElementById('modalImage').src = url;
+      document.getElementById('imageModal').classList.add('open');
+    }
+    function closeImageModal(e) {
+      if (e && e.target !== document.getElementById('imageModal')) return;
+      document.getElementById('imageModal').classList.remove('open');
+    }
+
+    if (localStorage.getItem('theme') === 'light') {
+      document.body.classList.add('light-mode');
+    }
+  </script>
+  <main class="app">
+    <nav class="nav">
+      <a href="/" class="brand"><span class="brand-mark">g</span> gathered</a>
+    </nav>
+
+    <div class="container">
+      <div class="tabs-container" style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 30px; border-bottom: 1px solid var(--glass-border); flex-shrink: 0;">
+        <div class="tabs">
+          <button class="tab-btn active" data-target="allPhotos">All Photos</button>
+          <button class="tab-btn" data-target="myPhotos">My Photos</button>
+        </div>
+        <div id="topActions" style="display: none; padding-bottom: 10px;">
+          <button id="downloadBtn" class="primary-btn" style="padding: 8px 16px; font-size: 14px; box-shadow: 0 4px 15px var(--accent-glow);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download All
+          </button>
+        </div>
+      </div>
+      
+      <div id="allPhotos" class="tab-content active">
+        <div class="photo-grid" id="allPhotosGrid">
+          <div class="empty-state">Loading event gallery...</div>
+        </div>
+      </div>
+      
+      <div id="myPhotos" class="tab-content">
+        <!-- Guest Profile Section -->
+        <div id="guestProfile" style="display: none; align-items: center; gap: 20px; padding: 20px; margin-bottom: 25px; background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 16px; backdrop-filter: blur(10px);">
+          <img id="profilePic" src="" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); box-shadow: 0 0 15px var(--accent-glow);">
+          <div>
+            <h2 id="profileName" style="margin: 0 0 5px 0; font-family: Fraunces, serif; font-size: 24px; color: var(--text-main);"></h2>
+            <p id="profileContact" style="margin: 0; color: var(--text-muted); font-size: 14px;"></p>
+          </div>
+        </div>
+
+        <div class="photo-grid" id="myPhotosFeed">
+          <div class="empty-state">Loading your photos...</div>
+        </div>
+        <div class="summary-box" id="myPhotosSummary" style="display: none; padding: 20px;">
+          <h3 id="matchedCount" style="margin: 0; font-size: 18px;">Total: 0 photos</h3>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Tab switching logic
+      const tabs = document.querySelectorAll('.tab-btn');
+      const contents = document.querySelectorAll('.tab-content');
+      
+      // Load data from session storage
+      const matchedPhotosRaw = sessionStorage.getItem('matchedPhotos');
+      const currentEvent = sessionStorage.getItem('currentEvent');
+      const guestName = sessionStorage.getItem('guestName');
+      const guestPhotoBase64 = sessionStorage.getItem('guestPhotoBase64');
+      
+      let matchedPhotos = [];
+      if (matchedPhotosRaw) {
+        try {
+          matchedPhotos = JSON.parse(matchedPhotosRaw);
+        } catch (e) {}
+      }
+      
+      let allPhotosUrls = [];
+      let isScanning = false;
+
+      const switchTab = (targetId) => {
+        tabs.forEach(t => t.classList.remove('active'));
+        contents.forEach(c => c.classList.remove('active'));
+        document.querySelector(`.tab-btn[data-target="${targetId}"]`).classList.add('active');
+        document.getElementById(targetId).classList.add('active');
+        
+        const topActions = document.getElementById('topActions');
+        if (topActions) {
+          if (targetId === 'myPhotos') {
+            topActions.style.display = (matchedPhotos && matchedPhotos.length > 0 && !isScanning) ? 'block' : 'none';
+          } else if (targetId === 'allPhotos') {
+            topActions.style.display = (allPhotosUrls && allPhotosUrls.length > 0) ? 'block' : 'none';
+          }
+        }
+      };
+      
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.target));
+      });
+      
+      // Auto-switch to 'My Photos' and show guest profile if they just uploaded via QR flow
+      if (guestName || guestPhotoBase64) {
+        document.getElementById('guestProfile').style.display = 'flex';
+        if (guestPhotoBase64) document.getElementById('profilePic').src = guestPhotoBase64;
+        if (guestName) document.getElementById('profileName').textContent = guestName;
+        document.getElementById('profileContact').textContent = sessionStorage.getItem('guestContact') || '';
+        
+        switchTab('myPhotos');
+      } else {
+        switchTab('allPhotos');
+      }
+      
+      const myPhotosFeed = document.getElementById('myPhotosFeed');
+      const matchedCountEl = document.getElementById('matchedCount');
+      const myPhotosSummary = document.getElementById('myPhotosSummary');
+
+      const renderMyPhotos = (photos) => {
+        if (photos && photos.length > 0) {
+          myPhotosFeed.innerHTML = photos.map(url => `
+            <div class="grid-item">
+              <a href="javascript:void(0)" onclick="openImageModal('${url}')">
+                <img src="/api/thumbnail?src=${encodeURIComponent(url)}&w=800" alt="Your Photo" loading="lazy">
+              </a>
+            </div>
+          `).join('');
+          matchedCountEl.textContent = `Total: ${photos.length} photos`;
+          myPhotosSummary.style.display = 'block';
+          if (document.querySelector('.tab-btn[data-target="myPhotos"]').classList.contains('active')) {
+            document.getElementById('topActions').style.display = 'block';
+          }
+        } else {
+          myPhotosFeed.innerHTML = `<div class="empty-state">No matching photos found for you.</div>`;
+          myPhotosSummary.style.display = 'none';
+          document.getElementById('topActions').style.display = 'none';
+        }
+      };
+
+      // If we don't have matched photos yet but we have a selfie, process it now
+      if ((!matchedPhotos || matchedPhotos.length === 0) && guestPhotoBase64) {
+        myPhotosFeed.innerHTML = `
+          <div id="loadingSpinner" style="text-align:center; padding:80px 20px; grid-column: 1 / -1;">
+            <div style="display:inline-block; width:50px; height:50px; border:4px solid var(--glass-border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:20px;"></div>
+            <style>@keyframes spin { to { transform:rotate(360deg); } }</style>
+            <h3 style="margin:0; font-family:Fraunces,serif; font-size:24px; font-weight:500; color:var(--text-main);">Finding your photos...</h3>
+            <p style="color:var(--text-muted); margin-top:8px;">Scanning event gallery using secure AI</p>
+          </div>
+        `;
+        
+        isScanning = true;
+        let feedContainerCreated = false;
+        let knownImages = new Set();
+        let pollInterval = null;
+        
+        const pollJobStatus = async (folder, event) => {
+          try {
+            const res = await fetch(`/api/grouped/${encodeURIComponent(event)}/${encodeURIComponent(folder)}`);
+            const data = await res.json();
+            
+            if (data.error) throw new Error(data.error);
+            
+            // Render new images one by one!
+            const newImages = data.images.filter(img => !knownImages.has(img));
+            if (newImages.length > 0) {
+              if (!feedContainerCreated) {
+                // Remove the big loading spinner from the full space, make it smaller at the bottom
+                myPhotosFeed.innerHTML = '';
+                feedContainerCreated = true;
+              }
+              
+              newImages.forEach(url => {
+                knownImages.add(url);
+                matchedPhotos.push(url);
+                const item = document.createElement('div');
+                item.className = 'grid-item';
+                item.style.animation = 'fadein 0.5s ease';
+                item.innerHTML = `
+                  <a href="javascript:void(0)" onclick="openImageModal('${url}')">
+                    <img src="/api/thumbnail?src=${encodeURIComponent(url)}&w=800" alt="Your Photo" loading="lazy">
+                  </a>
+                `;
+                
+                // Add before the loading spinner if it exists
+                const spinner = document.getElementById('smallLoadingSpinner');
+                if (spinner) {
+                  myPhotosFeed.insertBefore(item, spinner);
+                } else {
+                  myPhotosFeed.appendChild(item);
+                }
+              });
+              
+              matchedCountEl.textContent = `Total: ${matchedPhotos.length} photos`;
+              myPhotosSummary.style.display = 'block';
+              sessionStorage.setItem('matchedPhotos', JSON.stringify(matchedPhotos));
+            }
+            
+            // Add a small spinner at the bottom if still processing and we have images
+            if (data.status === 'processing' && feedContainerCreated && !document.getElementById('smallLoadingSpinner')) {
+              const spinner = document.createElement('div');
+              spinner.id = 'smallLoadingSpinner';
+              spinner.style = 'text-align:center; padding:20px; grid-column: 1 / -1;';
+              spinner.innerHTML = '<div style="display:inline-block; width:25px; height:25px; border:3px solid var(--glass-border); border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite;"></div><div style="font-size:14px; color:var(--text-muted); margin-top:10px;">Still searching...</div>';
+              myPhotosFeed.appendChild(spinner);
+            }
+            
+            if (data.status === 'done' || data.status === 'error') {
+              clearInterval(pollInterval);
+              isScanning = false;
+              const spinner = document.getElementById('smallLoadingSpinner');
+              if (spinner) spinner.remove();
+              
+              if (!feedContainerCreated) {
+                 myPhotosFeed.innerHTML = `<div class="empty-state">No matching photos found for you.</div>`;
+              } else {
+                 // Add a nice "Done!" checkmark at the bottom
+                 const doneMsg = document.createElement('div');
+                 doneMsg.style = 'text-align:center; padding:20px; color:var(--accent); font-weight:600; animation:fadein 0.5s ease; grid-column: 1 / -1;';
+                 doneMsg.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:5px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg><div>Search Complete</div>';
+                 myPhotosFeed.appendChild(doneMsg);
+                 
+                 if (document.querySelector('.tab-btn[data-target="myPhotos"]').classList.contains('active')) {
+                   document.getElementById('topActions').style.display = 'block';
+                 }
+              }
+            }
+          } catch (e) {
+            clearInterval(pollInterval);
+            isScanning = false;
+            myPhotosFeed.innerHTML = `<div class="empty-state">Error: ${e.message}</div>`;
+          }
+        };
+
+        // Convert Base64 to Blob and upload
+        fetch(guestPhotoBase64)
+          .then(res => res.blob())
+          .then(blob => {
+            const file = new File([blob], "guest_selfie.jpg", { type: "image/jpeg" });
+            const formData = new FormData();
+            formData.append('reference', file);
+            formData.append('folder_name', guestName || 'Guest');
+            formData.append('event', currentEvent || '');
+            formData.append('contact', sessionStorage.getItem('guestContact') || '');
+            formData.append('upcoming_event', sessionStorage.getItem('guestUpcomingEvent') || '');
+            
+            return fetch('/api/group', { method: 'POST', body: formData });
+          })
+          .then(async res => {
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.detail || 'Could not start scan.');
+            
+            // Start polling every 1.5 seconds!
+            pollInterval = setInterval(() => pollJobStatus(result.folder, result.event), 1500);
+          })
+          .catch(err => {
+            isScanning = false;
+            myPhotosFeed.innerHTML = `<div class="empty-state">Error: ${err.message || 'Unknown error occurred'}</div>`;
+          });
+      } else {
+        renderMyPhotos(matchedPhotos);
+      }
+      
+      // Handle Download All
+      document.getElementById('downloadBtn').addEventListener('click', async () => {
+        const isMyPhotos = document.querySelector('.tab-btn[data-target="myPhotos"]').classList.contains('active');
+        const imagesToDownload = isMyPhotos ? matchedPhotos : allPhotosUrls;
+        
+        if (!imagesToDownload || imagesToDownload.length === 0) return;
+        
+        const btn = document.getElementById('downloadBtn');
+        const originalContent = btn.innerHTML;
+        btn.disabled = true;
+        btn.style.position = 'relative';
+        btn.style.overflow = 'hidden';
+        
+        try {
+          const res = await fetch('/api/group/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ images: imagesToDownload })
+          });
+          if (!res.ok) throw new Error('Download failed');
+          
+          const total = parseInt(res.headers.get('content-length'), 10);
+          let loaded = 0;
+          const reader = res.body.getReader();
+          const chunks = [];
+          
+          while(true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            loaded += value.length;
+            
+            if (total) {
+              const percent = Math.round((loaded / total) * 100);
+              btn.innerHTML = `<div style="position:absolute; left:0; top:0; height:100%; width:${percent}%; background:rgba(255,255,255,0.3); z-index:1; transition:width 0.1s;"></div><span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Downloading ${percent}%</span>`;
+            } else {
+              btn.innerHTML = `<span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Downloading... ${(loaded/1024/1024).toFixed(1)} MB</span>`;
+            }
+          }
+          
+          btn.innerHTML = `<span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Saving...</span>`;
+          
+          const blob = new Blob(chunks, { type: 'application/zip' });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = isMyPhotos ? 'my-matched-photos.zip' : 'event-all-photos.zip';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+          
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          btn.innerHTML = originalContent;
+          btn.disabled = false;
+        }
+      });
+
+      // Load All Photos for the event
+      const loadAllPhotos = async () => {
+        if (!currentEvent) {
+          document.getElementById('allPhotosGrid').innerHTML = `<div class="empty-state">Event not specified.</div>`;
+          return;
+        }
+        
+        try {
+          const res = await fetch(`/api/admin/events/${currentEvent}/photos`);
+          if (!res.ok) throw new Error('Failed to load');
+          const data = await res.json();
+          
+          const allImages = data.images || [];
+          allPhotosUrls = allImages.map(img => img.url);
+          
+          if (document.querySelector('.tab-btn[data-target="allPhotos"]').classList.contains('active')) {
+            document.getElementById('topActions').style.display = (allPhotosUrls.length > 0) ? 'block' : 'none';
+          }
+          
+          if (allImages.length === 0) {
+            document.getElementById('allPhotosGrid').innerHTML = `<div class="empty-state">No photos in this event yet.</div>`;
+            return;
+          }
+          
+          document.getElementById('allPhotosGrid').innerHTML = allImages.map(img => `
+            <div class="grid-item">
+              <a href="javascript:void(0)" onclick="openImageModal('${img.url}')">
+                <img src="${img.thumbnail}" alt="Event Photo" loading="lazy">
+              </a>
+            </div>
+          `).join('');
+          
+        } catch (e) {
+          document.getElementById('allPhotosGrid').innerHTML = `<div class="empty-state">Error loading photos.</div>`;
+        }
+      };
+      
+      loadAllPhotos();
+    });
+  </script>
+</body>
+</html>

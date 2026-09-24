@@ -3,14 +3,15 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import re
 import shutil
 import tempfile
 import zipfile
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Body
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Body, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
@@ -25,6 +26,7 @@ MEDIA_DIR = PROJECT_DIR / "media"
 GROUPED_DIR = MEDIA_DIR / "grouped"
 EVENTS_DIR = MEDIA_DIR / "events"
 THUMBNAIL_CACHE_DIR = MEDIA_DIR / "cache"
+LIVE_STATE_FILE = MEDIA_DIR / "live_state.json"
 HEIC_EXTENSIONS = {".heic", ".heif"}
 register_heif_opener()
 EVENT_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
@@ -35,6 +37,11 @@ app = FastAPI(title="Gathered Face Grouping API")
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 app.mount("/event-images", StaticFiles(directory=EVENT_IMAGES_DIR), name="event-images")
 app.mount("/uploaded-events", StaticFiles(directory=EVENTS_DIR), name="uploaded-events")
+
+
+@app.get("/gallery")
+def get_gallery_page() -> FileResponse:
+    return FileResponse(PROJECT_DIR / "gallery.html")
 
 
 @app.get("/api/thumbnail")
@@ -140,7 +147,8 @@ def get_events() -> dict[str, object]:
                     "date_range": metadata.get("date_range", ""),
                     "venue": metadata.get("venue", ""),
                     "cover_photo": cover_photo,
-                    "photos_count": photos_count
+                    "photos_count": photos_count,
+                    "guest_count": len(metadata.get("guests", []))
                 })
     
     events.sort(key=lambda x: x["client_name"])
@@ -229,6 +237,56 @@ def delete_event_photos(slug: str, filenames: list[str] = Body(...)) -> dict[str
     return {"deleted": deleted, "errors": errors}
 
 
+@app.get("/api/admin/live-event")
+def get_live_event() -> dict[str, str | None]:
+    if LIVE_STATE_FILE.exists():
+        try:
+            with open(LIVE_STATE_FILE, "r") as f:
+                data = json.load(f)
+                return {"live_slug": data.get("live_slug")}
+        except Exception:
+            pass
+    return {"live_slug": None}
+
+
+@app.get("/api/admin/events/{slug}/guests")
+def get_event_guests(slug: str) -> dict[str, object]:
+    event_dir = EVENTS_DIR / slug
+    if not event_dir.exists() or not event_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    metadata_file = event_dir / "metadata.json"
+    guests = []
+    if metadata_file.exists():
+        try:
+            with open(metadata_file, "r") as f:
+                meta = json.load(f)
+            raw_guests = meta.get("guests", [])
+            for g in raw_guests:
+                if isinstance(g, dict):
+                    guests.append(g)
+                else:
+                    guests.append({"name": g, "contact": "", "upcoming_event": "", "image": ""})
+        except Exception:
+            pass
+            
+    return {"guests": guests}
+
+
+@app.post("/api/admin/live-event")
+def set_live_event(payload: dict[str, str | None] = Body(...)) -> dict[str, str | None]:
+    slug = payload.get("live_slug")
+    if slug is not None:
+        event_dir = EVENTS_DIR / slug
+        if not event_dir.exists() or not event_dir.is_dir():
+            raise HTTPException(status_code=404, detail="Event not found")
+            
+    with open(LIVE_STATE_FILE, "w") as f:
+        json.dump({"live_slug": slug}, f)
+        
+    return {"live_slug": slug}
+
+
 @app.post("/api/admin/events/{slug}/photos")
 def upload_event_photos(
     slug: str,
@@ -297,7 +355,7 @@ def upload_event_photos(
 
 @app.get("/api/admin/events/{slug}/download")
 @app.get("/api/events/{slug}/download")
-def download_event_photos(slug: str) -> StreamingResponse:
+def download_event_photos(slug: str, background_tasks: BackgroundTasks) -> FileResponse:
     event_dir = EVENTS_DIR / slug
     if not event_dir.exists() or not event_dir.is_dir():
         raise HTTPException(status_code=404, detail="Event not found")
@@ -309,40 +367,71 @@ def download_event_photos(slug: str) -> StreamingResponse:
     if not files:
         raise HTTPException(status_code=400, detail="No photos available to download")
 
-    zip_io = io.BytesIO()
-    with zipfile.ZipFile(zip_io, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for file in files:
-            zf.write(file, arcname=file.name)
-    zip_io.seek(0)
+    fd, temp_path = tempfile.mkstemp(suffix=".zip")
+    os.close(fd)
 
-    filename = f"{slug}-gallery.zip"
+    def cleanup():
+        try:
+            os.unlink(temp_path)
+        except Exception:
+            pass
+
+    background_tasks.add_task(cleanup)
+
+    with zipfile.ZipFile(temp_path, mode="w", compression=zipfile.ZIP_STORED) as zf:
+        for file in files:
+            arcname = file.stem + ".jpg"
+            zf.write(file, arcname=arcname)
+
     headers = {
-        "Content-Disposition": f'attachment; filename="{filename}"'
+        "Access-Control-Expose-Headers": "Content-Length"
     }
-    return StreamingResponse(zip_io, media_type="application/zip", headers=headers)
+    return FileResponse(temp_path, filename=f"{slug}-gallery.zip", media_type="application/zip", headers=headers)
 
 
 @app.post("/api/group/download")
-def download_grouped_photos(payload: dict[str, list[str]] = Body(...)) -> StreamingResponse:
+def download_grouped_photos(background_tasks: BackgroundTasks, payload: dict[str, list[str]] = Body(...)) -> FileResponse:
     image_urls = payload.get("images", [])
     if not image_urls:
         raise HTTPException(status_code=400, detail="No images provided for download")
 
-    zip_io = io.BytesIO()
-    with zipfile.ZipFile(zip_io, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+    fd, temp_path = tempfile.mkstemp(suffix=".zip")
+    os.close(fd)
+
+    def cleanup():
+        try:
+            os.unlink(temp_path)
+        except Exception:
+            pass
+
+    background_tasks.add_task(cleanup)
+
+    with zipfile.ZipFile(temp_path, mode="w", compression=zipfile.ZIP_STORED) as zf:
+        added_files = set()
         for url in image_urls:
+            url = unquote(url)
+            file_path = None
             if url.startswith("/media/grouped/"):
                 relative_path = url.replace("/media/grouped/", "")
                 file_path = (GROUPED_DIR / relative_path).resolve()
-                if file_path.exists() and file_path.is_file() and GROUPED_DIR.resolve() in file_path.parents:
-                    zf.write(file_path, arcname=file_path.name)
-    zip_io.seek(0)
+            elif url.startswith("/uploaded-events/"):
+                relative_path = url.replace("/uploaded-events/", "")
+                file_path = (EVENTS_DIR / relative_path).resolve()
+                
+            if file_path and file_path.exists() and file_path.is_file():
+                arcname = file_path.stem + ".jpg"
+                counter = 1
+                while arcname in added_files:
+                    arcname = f"{file_path.stem}_{counter}.jpg"
+                    counter += 1
+                
+                zf.write(file_path, arcname=arcname)
+                added_files.add(arcname)
 
-    filename = "my-matched-photos.zip"
     headers = {
-        "Content-Disposition": f'attachment; filename="{filename}"'
+        "Access-Control-Expose-Headers": "Content-Length"
     }
-    return StreamingResponse(zip_io, media_type="application/zip", headers=headers)
+    return FileResponse(temp_path, filename="downloaded-photos.zip", media_type="application/zip", headers=headers)
 
 
 @app.post("/api/events")
@@ -413,11 +502,27 @@ def upload_photos(
     }
 
 
+# Store job status for background tasks
+JOB_STATUS: dict[str, dict[str, str]] = {}
+
+def run_face_grouping(temporary_path: Path, event_dir: Path, output_dir: Path, job_key: str):
+    try:
+        grouper = FaceGrouper()
+        grouper.group_images(temporary_path, event_dir, output_dir)
+        JOB_STATUS[job_key] = {"status": "done", "error": ""}
+    except Exception as error:
+        JOB_STATUS[job_key] = {"status": "error", "error": str(error)}
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
 @app.post("/api/group")
 def group_photos(
+    background_tasks: BackgroundTasks,
     reference: UploadFile = File(...),
     folder_name: str = Form(...),
     event: str = Form(...),
+    contact: str = Form(default=""),
+    upcoming_event: str = Form(default=""),
 ) -> dict[str, object]:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]*", folder_name):
         raise HTTPException(status_code=400, detail="Use a valid folder name.")
@@ -425,11 +530,21 @@ def group_photos(
     if not reference.content_type or not reference.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="The reference file must be an image.")
 
+    # Strictly enforce Live event rule
+    live_event = get_live_event()["live_slug"]
+    if live_event and event != live_event:
+        event = live_event # Force live event
+        
     event_dir = EVENTS_DIR / event_slug(event)
     if not event_dir.is_dir():
         raise HTTPException(status_code=404, detail="Event not found.")
 
-    output_dir = GROUPED_DIR / folder_name
+    output_dir = GROUPED_DIR / event_slug(event) / folder_name
+    # Clear output_dir if starting a new job to prevent mixing old photos
+    if output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     suffix = Path(reference.filename or "reference.jpg").suffix.lower() or ".jpg"
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=PROJECT_DIR) as temporary_file:
@@ -438,18 +553,70 @@ def group_photos(
     try:
         with temporary_path.open("wb") as destination:
             shutil.copyfileobj(reference.file, destination)
+            
+        metadata_file = event_dir / "metadata.json"
+        if metadata_file.exists():
+            try:
+                with open(metadata_file, "r") as f:
+                    meta = json.load(f)
+                
+                guests = meta.get("guests", [])
+                
+                exists = False
+                for g in guests:
+                    if isinstance(g, dict) and g.get("name") == folder_name:
+                        exists = True
+                        break
+                    elif isinstance(g, str) and g == folder_name:
+                        exists = True
+                        break
+                        
+                if not exists:
+                    # Save a copy of the reference image for the profile picture
+                    profile_pic_dir = event_dir / "guests_profiles"
+                    profile_pic_dir.mkdir(parents=True, exist_ok=True)
+                    profile_pic_path = profile_pic_dir / f"{folder_name}.jpg"
+                    shutil.copy2(temporary_path, profile_pic_path)
+                    
+                    guests.append({
+                        "name": folder_name,
+                        "contact": contact,
+                        "upcoming_event": upcoming_event,
+                        "image": f"/api/thumbnail?src={quote(f'/uploaded-events/{event_slug(event)}/guests_profiles/{folder_name}.jpg')}&w=150"
+                    })
+                    meta["guests"] = guests
+                    with open(metadata_file, "w") as f:
+                        json.dump(meta, f)
+            except Exception:
+                pass
 
-        grouper = FaceGrouper()
-        matched, readable = grouper.group_images(temporary_path, event_dir, output_dir)
+        job_key = f"{event_slug(event)}_{folder_name}"
+        JOB_STATUS[job_key] = {"status": "processing", "error": ""}
+        background_tasks.add_task(run_face_grouping, temporary_path, event_dir, output_dir, job_key)
+        
+        return {"status": "processing", "folder": folder_name, "event": event_slug(event)}
+    except Exception as error:
+        temporary_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Failed to start job: {error}") from error
+
+@app.get("/api/grouped/{event}/{folder_name}")
+def get_grouped_photos(event: str, folder_name: str) -> dict[str, object]:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]*", folder_name):
+        raise HTTPException(status_code=400, detail="Invalid folder name.")
+        
+    output_dir = GROUPED_DIR / event / folder_name
+    image_urls = []
+    if output_dir.exists():
         image_urls = [
-            f"/media/grouped/{folder_name}/{image_file.name}"
-            for image_file in sorted(output_dir.iterdir())
+            f"/media/grouped/{event}/{folder_name}/{image_file.name}"
+            for image_file in sorted(output_dir.iterdir(), key=lambda x: x.stat().st_mtime)
             if image_file.is_file() and image_file.suffix.lower() in IMAGE_EXTENSIONS
         ]
-        return {"matched": matched, "readable": readable, "images": image_urls}
-    except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
-    except Exception as error:
-        raise HTTPException(status_code=500, detail=f"Face grouping failed: {error}") from error
-    finally:
-        temporary_path.unlink(missing_ok=True)
+        
+    job_key = f"{event}_{folder_name}"
+    status_info = JOB_STATUS.get(job_key, {"status": "unknown", "error": ""})
+    return {
+        "status": status_info["status"],
+        "error": status_info.get("error", ""),
+        "images": image_urls
+    }
