@@ -237,6 +237,20 @@ def delete_event_photos(slug: str, filenames: list[str] = Body(...)) -> dict[str
     return {"deleted": deleted, "errors": errors}
 
 
+@app.delete("/api/admin/events/{slug}")
+def delete_event(slug: str) -> dict[str, object]:
+    event_dir = EVENTS_DIR / slug
+    if not event_dir.exists() or not event_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    try:
+        shutil.rmtree(event_dir)
+        return {"status": "success", "deleted": slug}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete event: {str(e)}")
+
+
+
 @app.get("/api/admin/live-event")
 def get_live_event() -> dict[str, str | None]:
     if LIVE_STATE_FILE.exists():

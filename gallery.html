@@ -382,43 +382,30 @@
         btn.style.overflow = 'hidden';
         
         try {
-          const res = await fetch('/api/group/download', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ images: imagesToDownload })
-          });
-          if (!res.ok) throw new Error('Download failed');
-          
-          const total = parseInt(res.headers.get('content-length'), 10);
-          let loaded = 0;
-          const reader = res.body.getReader();
-          const chunks = [];
-          
-          while(true) {
-            const {done, value} = await reader.read();
-            if (done) break;
-            chunks.push(value);
-            loaded += value.length;
+          for (let i = 0; i < imagesToDownload.length; i++) {
+            const url = imagesToDownload[i];
+            const btnPercent = Math.round(((i + 1) / imagesToDownload.length) * 100);
+            btn.innerHTML = `<div style="position:absolute; left:0; top:0; height:100%; width:${btnPercent}%; background:rgba(255,255,255,0.3); z-index:1; transition:width 0.1s;"></div><span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Downloading ${btnPercent}%</span>`;
             
-            if (total) {
-              const percent = Math.round((loaded / total) * 100);
-              btn.innerHTML = `<div style="position:absolute; left:0; top:0; height:100%; width:${percent}%; background:rgba(255,255,255,0.3); z-index:1; transition:width 0.1s;"></div><span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Downloading ${percent}%</span>`;
-            } else {
-              btn.innerHTML = `<span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Downloading... ${(loaded/1024/1024).toFixed(1)} MB</span>`;
+            try {
+              const response = await fetch(url);
+              const blob = await response.blob();
+              const objectUrl = window.URL.createObjectURL(blob);
+              
+              const a = document.createElement('a');
+              a.href = objectUrl;
+              const filename = url.substring(url.lastIndexOf('/') + 1) || `image_${i}.jpg`;
+              a.download = filename;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              window.URL.revokeObjectURL(objectUrl);
+              
+              await new Promise(resolve => setTimeout(resolve, 200)); // small delay between downloads
+            } catch (fetchErr) {
+              console.error('Failed to download image:', url, fetchErr);
             }
           }
-          
-          btn.innerHTML = `<span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Saving...</span>`;
-          
-          const blob = new Blob(chunks, { type: 'application/zip' });
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = isMyPhotos ? 'my-matched-photos.zip' : 'event-all-photos.zip';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          window.URL.revokeObjectURL(url);
           
         } catch (err) {
           alert(err.message);

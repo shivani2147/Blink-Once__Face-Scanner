@@ -1042,23 +1042,32 @@
 
     document.querySelector('#downloadMatchedBtn').addEventListener('click', async () => {
       if (!matchedPhotoUrls || matchedPhotoUrls.length === 0) return;
+      const btn = document.querySelector('#downloadMatchedBtn');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Downloading...';
+      btn.style.pointerEvents = 'none';
       try {
-        const res = await fetch('/api/group/download', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ images: matchedPhotoUrls })
-        });
-        if (!res.ok) throw new Error('Download failed');
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'my-matched-photos.zip';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        for (let i = 0; i < matchedPhotoUrls.length; i++) {
+          const imgUrl = matchedPhotoUrls[i];
+          const res = await fetch(imgUrl);
+          if (!res.ok) continue;
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const filename = imgUrl.split('/').pop().split('?')[0] || `photo_${i+1}.jpg`;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
       } catch (err) {
-        alert(err.message);
+        alert("Download failed: " + err.message);
+      } finally {
+        btn.innerHTML = originalText;
+        btn.style.pointerEvents = 'auto';
       }
     });
     // Theme Toggle
