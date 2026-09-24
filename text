@@ -1,2 +1,10 @@
 To run the code : 
  - uvicorn main:app --reload
+
+
+
+VPS : 
+ - cd /root/Blink-Once__Face-Scanner
+ - git pull origin main
+ - sudo systemctl restart face-scanner
+
