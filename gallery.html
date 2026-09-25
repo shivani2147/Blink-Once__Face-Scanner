@@ -383,27 +383,28 @@
         
         try {
           for (let i = 0; i < imagesToDownload.length; i++) {
-            const url = imagesToDownload[i];
+            const imgUrl = imagesToDownload[i];
             const btnPercent = Math.round(((i + 1) / imagesToDownload.length) * 100);
             btn.innerHTML = `<div style="position:absolute; left:0; top:0; height:100%; width:${btnPercent}%; background:rgba(255,255,255,0.3); z-index:1; transition:width 0.1s;"></div><span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Downloading ${btnPercent}%</span>`;
             
             try {
-              const response = await fetch(url);
-              const blob = await response.blob();
+              const res = await fetch(imgUrl);
+              if (!res.ok) { console.warn('Skipping image (fetch failed):', imgUrl, res.status); continue; }
+              const blob = await res.blob();
               const objectUrl = window.URL.createObjectURL(blob);
               
               const a = document.createElement('a');
               a.href = objectUrl;
-              const filename = url.substring(url.lastIndexOf('/') + 1) || `image_${i}.jpg`;
+              const filename = imgUrl.split('/').pop().split('?')[0] || `image_${i + 1}.jpg`;
               a.download = filename;
               document.body.appendChild(a);
               a.click();
-              document.body.removeChild(a);
+              a.remove();
               window.URL.revokeObjectURL(objectUrl);
               
-              await new Promise(resolve => setTimeout(resolve, 200)); // small delay between downloads
+              await new Promise(resolve => setTimeout(resolve, 300)); // small delay between downloads
             } catch (fetchErr) {
-              console.error('Failed to download image:', url, fetchErr);
+              console.error('Failed to download image:', imgUrl, fetchErr);
             }
           }
           
