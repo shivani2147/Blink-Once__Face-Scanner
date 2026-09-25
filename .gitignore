@@ -49,3 +49,6 @@ Thumbs.db
 # Secrets
 *.pem
 *.key
+
+# Production/runtime media
+media/
