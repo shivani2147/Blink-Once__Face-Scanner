@@ -14,7 +14,7 @@ from urllib.parse import quote, unquote
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Body, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from PIL import Image
+from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 
 from face_grouping import FaceGrouper, IMAGE_EXTENSIONS
@@ -80,6 +80,7 @@ def get_thumbnail(src: str, w: int = 400, q: int = 80) -> FileResponse:
 
     try:
         with Image.open(file_path) as img:
+            img = ImageOps.exif_transpose(img)
             img = img.convert("RGB")
             img.thumbnail((w, w), Image.Resampling.LANCZOS)
             img.save(cache_file, format="JPEG", quality=q, optimize=True)
@@ -201,10 +202,11 @@ def get_event_photos(slug: str) -> dict[str, object]:
     images = []
     for f in files:
         raw_url = f"/uploaded-events/{slug}/{f.name}"
+        mtime = int(f.stat().st_mtime)  # version token — changes whenever file is modified
         images.append({
             "filename": f.name,
             "url": raw_url,
-            "thumbnail": f"/api/thumbnail?src={quote(raw_url)}&w=400"
+            "thumbnail": f"/api/thumbnail?src={quote(raw_url)}&w=400&_v={mtime}"
         })
         
     return {"images": images}
@@ -348,16 +350,13 @@ def upload_event_photos(
         final_filename = destination.name
 
         try:
-            if extension in HEIC_EXTENSIONS:
-                with Image.open(photo.file) as image:
-                    image.convert("RGB").save(
-                        destination,
-                        format="JPEG",
-                        quality=95
-                    )
-            else:
-                with destination.open("wb") as output:
-                    shutil.copyfileobj(photo.file, output)
+            with Image.open(photo.file) as image:
+                image = ImageOps.exif_transpose(image)
+                image.convert("RGB").save(
+                    destination,
+                    format="JPEG",
+                    quality=95
+                )
 
         except Image.DecompressionBombError:
             skipped.append({
@@ -405,6 +404,46 @@ def upload_event_photos(
         "saved": saved,
         "skipped": skipped,
     }
+
+
+@app.post("/api/admin/events/{slug}/photos/{filename}/rotate")
+def rotate_event_photo(slug: str, filename: str, payload: dict[str, str] = Body(...)) -> dict[str, object]:
+    """Rotate a photo 90° left or right and invalidate its thumbnail cache."""
+    direction = payload.get("direction", "right")  # "left" or "right"
+    if direction not in ("left", "right"):
+        raise HTTPException(status_code=400, detail="direction must be 'left' or 'right'")
+
+    event_dir = EVENTS_DIR / slug
+    if not event_dir.exists() or not event_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    file_path = (event_dir / filename).resolve()
+    if event_dir.resolve() not in file_path.parents:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    try:
+        with Image.open(file_path) as img:
+            img = ImageOps.exif_transpose(img)   # normalise EXIF so rotation is relative to what user sees
+            img = img.convert("RGB")
+            # Use PIL.Transpose which is explicit and unambiguous for 90° steps
+            if direction == "right":
+                img = img.transpose(Image.Transpose.ROTATE_270)   # 90° clockwise
+            else:
+                img = img.transpose(Image.Transpose.ROTATE_90)    # 90° counter-clockwise
+            img.save(file_path, format="JPEG", quality=95, optimize=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to rotate image: {e}")
+
+    # Bust server-side thumbnail cache for all common size/quality combos
+    for w in (150, 400, 500):
+        for q in (75, 80, 85, 90, 95):
+            key = hashlib.md5(f"{file_path}_{w}_{q}".encode("utf-8")).hexdigest()
+            (THUMBNAIL_CACHE_DIR / f"{key}.jpg").unlink(missing_ok=True)
+
+    new_mtime = int(file_path.stat().st_mtime)
+    return {"status": "ok", "direction": direction, "mtime": new_mtime}
 
 
 @app.get("/api/admin/events/{slug}/download")
@@ -523,12 +562,9 @@ def upload_photos(
             
         final_filename = destination.name
             
-        if extension in HEIC_EXTENSIONS:
-            with Image.open(photo.file) as image:
-                image.convert("RGB").save(destination, format="JPEG", quality=95)
-        else:
-            with destination.open("wb") as output:
-                shutil.copyfileobj(photo.file, output)
+        with Image.open(photo.file) as image:
+            image = ImageOps.exif_transpose(image)
+            image.convert("RGB").save(destination, format="JPEG", quality=95)
         
         if not cover_photo_name:
             cover_photo_name = final_filename

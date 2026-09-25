@@ -144,6 +144,9 @@
         <div class="photo-grid" id="allPhotosGrid">
           <div class="empty-state">Loading event gallery...</div>
         </div>
+        <div class="summary-box" id="allPhotosSummary" style="display: none; padding: 20px;">
+          <h3 id="allPhotosCount" style="margin: 0; font-size: 18px;">Total: 0 photos</h3>
+        </div>
       </div>
       
       <div id="myPhotos" class="tab-content">
@@ -382,31 +385,30 @@
         btn.style.overflow = 'hidden';
         
         try {
-          for (let i = 0; i < imagesToDownload.length; i++) {
-            const imgUrl = imagesToDownload[i];
-            const btnPercent = Math.round(((i + 1) / imagesToDownload.length) * 100);
-            btn.innerHTML = `<div style="position:absolute; left:0; top:0; height:100%; width:${btnPercent}%; background:rgba(255,255,255,0.3); z-index:1; transition:width 0.1s;"></div><span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">Downloading ${btnPercent}%</span>`;
-            
-            try {
-              const res = await fetch(imgUrl);
-              if (!res.ok) { console.warn('Skipping image (fetch failed):', imgUrl, res.status); continue; }
-              const blob = await res.blob();
-              const objectUrl = window.URL.createObjectURL(blob);
-              
-              const a = document.createElement('a');
-              a.href = objectUrl;
-              const filename = imgUrl.split('/').pop().split('?')[0] || `image_${i + 1}.jpg`;
-              a.download = filename;
-              document.body.appendChild(a);
-              a.click();
-              a.remove();
-              window.URL.revokeObjectURL(objectUrl);
-              
-              await new Promise(resolve => setTimeout(resolve, 300)); // small delay between downloads
-            } catch (fetchErr) {
-              console.error('Failed to download image:', imgUrl, fetchErr);
-            }
-          }
+          btn.innerHTML = `<span style="position:relative; z-index:2; display:flex; align-items:center; gap:8px;">
+            <div style="width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
+            <style>@keyframes spin { to { transform:rotate(360deg); } }</style>
+            Preparing Zip...</span>`;
+
+          const res = await fetch('/api/group/download', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ images: imagesToDownload })
+          });
+          
+          if (!res.ok) throw new Error('Failed to create zip file');
+          
+          const blob = await res.blob();
+          const objectUrl = window.URL.createObjectURL(blob);
+          
+          const a = document.createElement('a');
+          a.href = objectUrl;
+          const zipName = isMyPhotos ? 'my-photos.zip' : 'gallery-photos.zip';
+          a.download = zipName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(objectUrl);
           
         } catch (err) {
           alert(err.message);
@@ -437,6 +439,7 @@
           
           if (allImages.length === 0) {
             document.getElementById('allPhotosGrid').innerHTML = `<div class="empty-state">No photos in this event yet.</div>`;
+            document.getElementById('allPhotosSummary').style.display = 'none';
             return;
           }
           
@@ -447,6 +450,9 @@
               </a>
             </div>
           `).join('');
+          
+          document.getElementById('allPhotosCount').textContent = `Total: ${allImages.length} photos`;
+          document.getElementById('allPhotosSummary').style.display = 'block';
           
         } catch (e) {
           document.getElementById('allPhotosGrid').innerHTML = `<div class="empty-state">Error loading photos.</div>`;

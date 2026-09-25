@@ -101,6 +101,15 @@
     
     .check-icon { position:absolute; top:12px; right:12px; width:28px; height:28px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; opacity:0; transform: scale(0.5); transition: all 0.1s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); pointer-events: none;}
     .photo-card.selected .check-icon { opacity:1; transform: scale(1); }
+
+    /* Card-level rotate overlay */
+    .card-rotate-bar { position:absolute; bottom:0; left:0; right:0; display:flex; justify-content:center; gap:10px; padding:10px 8px; background:linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%); opacity:0; transform:translateY(6px); transition: opacity 0.22s ease, transform 0.22s ease; pointer-events:none; z-index:5; }
+    .photo-card:hover .card-rotate-bar { opacity:1; transform:translateY(0); pointer-events:all; }
+    .photo-card.selected .card-rotate-bar { display:none; }
+    .card-rot-btn { width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.18); border:1.5px solid rgba(255,255,255,0.35); color:#fff; display:grid; place-items:center; cursor:pointer; backdrop-filter:blur(8px); transition:background 0.18s, transform 0.18s; flex-shrink:0; }
+    .card-rot-btn:hover { background:var(--accent); border-color:var(--accent); transform:scale(1.12); box-shadow:0 0 12px var(--accent-glow); }
+    .card-rot-btn:active { transform:scale(0.95); }
+    .card-rot-btn.spinning { opacity:0.5; pointer-events:none; }
     
     .empty-state { grid-column:1/-1; text-align:center; padding:80px 20px; background:var(--glass-bg); border-radius:16px; border:1.5px dashed var(--glass-border); color:var(--text-muted); backdrop-filter: blur(10px); }
     
@@ -125,6 +134,14 @@
     .lightbox-nav:hover { background:var(--accent); border-color:var(--accent); box-shadow:0 0 20px var(--accent-glow); }
     .lightbox-prev { left:20px; }
     .lightbox-next { right:20px; }
+
+    /* Rotate buttons */
+    .lightbox-btn.rotating { opacity: 0.5; pointer-events: none; }
+    .rotate-icon { display:inline-flex; align-items:center; gap:6px; }
+
+    /* Toast notification */
+    #rotateToast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(16,185,129,0.95); color:#fff; padding:10px 22px; border-radius:30px; font-size:14px; font-weight:600; opacity:0; pointer-events:none; transition:all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index:9999; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+    #rotateToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
@@ -226,6 +243,18 @@
     <div class="lightbox-toolbar">
       <span class="lightbox-title" id="lightboxCounter">Photo 1 of 1</span>
       <div style="display:flex; gap:12px; align-items:center;">
+        <button class="lightbox-btn" id="rotateLeftBtn" title="Rotate Left 90°">
+          <span class="rotate-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            Rotate L
+          </span>
+        </button>
+        <button class="lightbox-btn" id="rotateRightBtn" title="Rotate Right 90°">
+          <span class="rotate-icon">
+            Rotate R
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+          </span>
+        </button>
         <a id="lightboxDownloadBtn" class="lightbox-btn" download target="_blank">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Download Original
@@ -237,6 +266,8 @@
     <img id="lightboxImg" class="lightbox-content" src="" alt="Full view">
     <div class="lightbox-nav lightbox-next" id="lightboxNext">›</div>
   </div>
+
+  <div id="rotateToast">✓ Saved</div>
 
   <div class="action-bar" id="actionBar">
     <div class="selection-count"><span id="selCount">0</span> Selected</div>
@@ -525,7 +556,110 @@
       if (e.key === 'ArrowLeft') openLightbox((currentPhotoIndex - 1 + photos.length) % photos.length);
       if (e.key === 'ArrowRight') openLightbox((currentPhotoIndex + 1) % photos.length);
     });
+
+    // ── Rotate helpers ──────────────────────────────────────────────────
+    const rotateToast = document.getElementById('rotateToast');
+    let toastTimer = null;
+
+    const showToast = (msg = '✓ Saved') => {
+      rotateToast.textContent = msg;
+      rotateToast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => rotateToast.classList.remove('show'), 1800);
+    };
+
+    const rotatePhoto = async (direction) => {
+      const photo = photos[currentPhotoIndex];
+      if (!photo) return;
+
+      const rotLeftBtn  = document.getElementById('rotateLeftBtn');
+      const rotRightBtn = document.getElementById('rotateRightBtn');
+      rotLeftBtn.classList.add('rotating');
+      rotRightBtn.classList.add('rotating');
+
+      try {
+        const res = await fetch(`/api/admin/events/${slug}/photos/${encodeURIComponent(photo.filename)}/rotate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Rotate failed');
+
+        // Use server mtime as version token — persists across page reloads
+        const newV = data.mtime;
+        const base = (photo.thumbnail || photo.url).replace(/[&?]_v=\d+/, '').replace(/[&?]_t=\d+/, '');
+        const freshThumb = base + (base.includes('?') ? '&' : '?') + `_v=${newV}`;
+        photo.thumbnail = freshThumb;  // keep photos[] in sync for future re-renders
+
+        // Update thumbnail in the grid card
+        const card = grid.querySelectorAll('.photo-card')[currentPhotoIndex];
+        if (card) {
+          const cardImg = card.querySelector('img');
+          if (cardImg) cardImg.src = freshThumb;
+        }
+        // Reload lightbox image
+        const rawBase = photo.url.replace(/[&?]_v=\d+/, '').replace(/[&?]_t=\d+/, '');
+        lightboxImg.src = rawBase + (rawBase.includes('?') ? '&' : '?') + `_v=${newV}`;
+
+        showToast('\u2713 Saved');
+      } catch (err) {
+        showToast('\u2717 ' + err.message);
+        rotateToast.style.background = 'rgba(239,68,68,0.95)';
+        setTimeout(() => { rotateToast.style.background = ''; }, 2000);
+      } finally {
+        rotLeftBtn.classList.remove('rotating');
+        rotRightBtn.classList.remove('rotating');
+      }
+    };
+
+    document.getElementById('rotateLeftBtn').addEventListener('click',  () => rotatePhoto('left'));
+    document.getElementById('rotateRightBtn').addEventListener('click', () => rotatePhoto('right'));
     
+    // Card-level rotate (called from inline onclick on the rotate buttons)
+    window.rotatePhotoByIndex = async (event, index, direction) => {
+      event.stopPropagation(); // don't open lightbox
+      const photo = photos[index];
+      if (!photo) return;
+
+      const card = grid.querySelectorAll('.photo-card')[index];
+      const btns = card ? card.querySelectorAll('.card-rot-btn') : [];
+      btns.forEach(b => b.classList.add('spinning'));
+
+      try {
+        const res = await fetch(`/api/admin/events/${slug}/photos/${encodeURIComponent(photo.filename)}/rotate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Rotate failed');
+
+        // Use server mtime as version token — persists across page reloads
+        const newV = data.mtime;
+        const base = (photo.thumbnail || photo.url).replace(/[&?]_v=\d+/, '').replace(/[&?]_t=\d+/, '');
+        const freshThumb = base + (base.includes('?') ? '&' : '?') + `_v=${newV}`;
+        photo.thumbnail = freshThumb;  // keep photos[] in sync for future re-renders
+
+        if (card) {
+          const cardImg = card.querySelector('img');
+          if (cardImg) cardImg.src = freshThumb;
+        }
+        // Refresh lightbox if it's open on this same photo
+        if (lightbox.classList.contains('open') && currentPhotoIndex === index) {
+          const rawBase = photo.url.replace(/[&?]_v=\d+/, '').replace(/[&?]_t=\d+/, '');
+          lightboxImg.src = rawBase + (rawBase.includes('?') ? '&' : '?') + `_v=${newV}`;
+        }
+        showToast('\u2713 Saved');
+      } catch (err) {
+        showToast('\u2717 ' + err.message);
+        rotateToast.style.background = 'rgba(239,68,68,0.95)';
+        setTimeout(() => { rotateToast.style.background = ''; }, 2000);
+      } finally {
+        btns.forEach(b => b.classList.remove('spinning'));
+      }
+    };
+
     const renderPhotos = () => {
       if (photos.length === 0) {
         grid.innerHTML = `<div class="empty-state">No photos found for this event.</div>`;
@@ -537,6 +671,15 @@
           <img src="${p.thumbnail || p.url}" alt="Photo" loading="lazy" decoding="async">
           <div class="check-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="card-rotate-bar">
+            <button class="card-rot-btn" title="Rotate Left" onclick="rotatePhotoByIndex(event,${index},'left')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+            <span style="color:rgba(255,255,255,0.65); font-size:11px; font-weight:600; letter-spacing:.5px; align-self:center; user-select:none;">ROTATE</span>
+            <button class="card-rot-btn" title="Rotate Right" onclick="rotatePhotoByIndex(event,${index},'right')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            </button>
           </div>
         </div>
       `).join('');
