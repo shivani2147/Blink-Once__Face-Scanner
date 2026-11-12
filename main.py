@@ -11,8 +11,8 @@ import zipfile
 from pathlib import Path
 from urllib.parse import quote, unquote
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Body, BackgroundTasks
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Body, BackgroundTasks, Request, Response
+from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
@@ -90,16 +90,32 @@ def get_thumbnail(src: str, w: int = 400, q: int = 80) -> FileResponse:
 
 
 @app.get("/", include_in_schema=False)
-def homepage() -> FileResponse:
-    return FileResponse(PROJECT_DIR / "index.html")
+def homepage(request: Request) -> Response:
+    response = FileResponse(PROJECT_DIR / "index.html")
+    is_guest_param = request.query_params.get("guest") in ("1", "true") or bool(request.query_params.get("event"))
+    if is_guest_param:
+        response.set_cookie("is_guest", "true", max_age=604800, samesite="lax")
+    elif request.query_params.get("admin") == "1":
+        response.delete_cookie("is_guest")
+    return response
 
 @app.get("/admin", include_in_schema=False)
-def admin_page() -> FileResponse:
-    return FileResponse(PROJECT_DIR / "admin.html")
+def admin_page(request: Request) -> Response:
+    if request.cookies.get("is_guest") == "true" and request.query_params.get("admin") != "1":
+        return RedirectResponse(url="/", status_code=303)
+    response = FileResponse(PROJECT_DIR / "admin.html")
+    if request.query_params.get("admin") == "1":
+        response.delete_cookie("is_guest")
+    return response
 
 @app.get("/admin/event", include_in_schema=False)
-def event_admin_page() -> FileResponse:
-    return FileResponse(PROJECT_DIR / "event_admin.html")
+def event_admin_page(request: Request) -> Response:
+    if request.cookies.get("is_guest") == "true" and request.query_params.get("admin") != "1":
+        return RedirectResponse(url="/", status_code=303)
+    response = FileResponse(PROJECT_DIR / "event_admin.html")
+    if request.query_params.get("admin") == "1":
+        response.delete_cookie("is_guest")
+    return response
 
 @app.get("/api/health")
 def health() -> dict[str, str]:

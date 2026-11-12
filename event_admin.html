@@ -8,6 +8,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('admin') === '1') {
+        sessionStorage.removeItem('is_guest');
+        localStorage.removeItem('is_guest');
+        sessionStorage.setItem('is_admin', 'true');
+        document.cookie = "is_guest=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      } else if (sessionStorage.getItem('is_guest') === 'true' || localStorage.getItem('is_guest') === 'true' || document.cookie.includes('is_guest=true')) {
+        window.location.replace('/');
+      } else {
+        sessionStorage.removeItem('is_guest');
+        localStorage.removeItem('is_guest');
+        sessionStorage.setItem('is_admin', 'true');
+        document.cookie = "is_guest=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      }
+    })();
+  </script>
   <style>
     :root { 
       --bg-dark: #0a0b10; 
@@ -142,6 +160,36 @@
     /* Toast notification */
     #rotateToast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px); background:rgba(16,185,129,0.95); color:#fff; padding:10px 22px; border-radius:30px; font-size:14px; font-weight:600; opacity:0; pointer-events:none; transition:all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index:9999; backdrop-filter:blur(10px); box-shadow:0 8px 24px rgba(0,0,0,0.3); }
     #rotateToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    @media print {
+      body * { visibility: hidden !important; }
+      #shareEventModal, #shareEventModal * { visibility: visible !important; }
+      #shareEventModal {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        background: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        z-index: 99999 !important;
+      }
+      #shareEventModal .modal-card {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+      }
+      #shareEventModal .close,
+      #shareEventModal button {
+        display: none !important;
+      }
+      #shareEventModal h2, #shareEventModal h3, #shareEventModal p {
+        color: #111111 !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -172,6 +220,10 @@
         <button id="downloadAllBtn" class="btn-action btn-secondary" title="Download all photos as ZIP">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Download All
+        </button>
+        <button id="shareEventQrBtn" class="btn-action btn-secondary" title="Share or Print Guest QR Code">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          Share QR
         </button>
         <button id="uploadMediaBtn" class="btn-action btn-primary" title="Upload new media to this event">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
@@ -236,6 +288,36 @@
           Upload to Gallery
         </button>
       </form>
+    </div>
+  </div>
+
+  <div class="modal" id="shareEventModal">
+    <div class="modal-card" style="text-align: center; max-width: 500px;">
+      <div class="modal-top">
+        <h2 style="font-family:Fraunces,serif; font-size:26px; margin:0; font-weight:500;">Share Event QR</h2>
+        <button class="close" id="closeShareEventModal" aria-label="Close">×</button>
+      </div>
+
+      <div style="background: var(--input-bg); padding: 35px 25px; border-radius: 20px; border: 1px solid var(--glass-border); display: inline-block; width: 100%; box-shadow: inset 0 0 20px rgba(0,0,0,0.2); margin-top: 10px;">
+        <h3 id="shareEventModalTitle" style="margin-top: 0; color: var(--accent); font-family: Fraunces, serif; font-size: 26px; font-weight: 500; margin-bottom: 20px;">Capture Your Memories</h3>
+        
+        <div style="background: #fff; padding: 15px; border-radius: 16px; display: inline-block; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+          <img id="shareEventQrCodeImg" src="" alt="Event QR Code" width="220" height="220" style="display: block; border-radius: 8px;">
+        </div>
+        
+        <p style="margin: 0; color: var(--text-main); font-size: 15px; font-weight: 300; line-height: 1.5;">Scan this QR code with your phone to find your photos.<br><span style="font-size:13px; color:var(--text-muted);">(Guests will not see admin buttons)</span></p>
+      </div>
+      
+      <div style="margin-top: 25px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <button class="btn-action btn-secondary" onclick="window.print()" style="padding: 12px 20px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          Print Template
+        </button>
+        <button class="btn-action btn-primary" id="copyEventShareLinkBtn" style="padding: 12px 20px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span id="copyEventShareBtnText">Copy Guest Link</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -388,6 +470,58 @@
       }
       window.location.href = `/api/admin/events/${slug}/download`;
     });
+
+    // Share Event QR Modal & Handlers
+    const shareEventModal = document.getElementById('shareEventModal');
+    const shareEventQrBtn = document.getElementById('shareEventQrBtn');
+    const closeShareEventModal = document.getElementById('closeShareEventModal');
+    const shareEventQrCodeImg = document.getElementById('shareEventQrCodeImg');
+    const copyEventShareLinkBtn = document.getElementById('copyEventShareLinkBtn');
+    const copyEventShareBtnText = document.getElementById('copyEventShareBtnText');
+    const shareEventModalTitle = document.getElementById('shareEventModalTitle');
+
+    function getEventGuestUrl() {
+      return window.location.origin + '/?guest=1&event=' + encodeURIComponent(slug);
+    }
+
+    if (shareEventQrBtn) {
+      shareEventQrBtn.addEventListener('click', () => {
+        const guestUrl = getEventGuestUrl();
+        shareEventQrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(guestUrl)}`;
+        const currentTitle = document.getElementById('eventTitle').textContent;
+        if (currentTitle) {
+          shareEventModalTitle.textContent = currentTitle;
+        }
+        shareEventModal.classList.add('open');
+      });
+    }
+
+    if (closeShareEventModal) {
+      closeShareEventModal.addEventListener('click', () => {
+        shareEventModal.classList.remove('open');
+      });
+    }
+
+    if (shareEventModal) {
+      shareEventModal.addEventListener('click', (e) => {
+        if (e.target === shareEventModal) {
+          shareEventModal.classList.remove('open');
+        }
+      });
+    }
+
+    if (copyEventShareLinkBtn) {
+      copyEventShareLinkBtn.addEventListener('click', async () => {
+        const guestUrl = getEventGuestUrl();
+        try {
+          await navigator.clipboard.writeText(guestUrl);
+          copyEventShareBtnText.textContent = 'Link Copied!';
+          setTimeout(() => copyEventShareBtnText.textContent = 'Copy Guest Link', 2000);
+        } catch (err) {
+          prompt('Copy guest link:', guestUrl);
+        }
+      });
+    }
 
     // Upload Media Modal & Handlers
     const uploadModal = document.getElementById('uploadMediaModal');

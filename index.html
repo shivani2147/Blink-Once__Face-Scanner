@@ -12,6 +12,13 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap"
     rel="stylesheet">
   <style>
+    /* Hide Admin Space button in guest mode */
+    .guest-mode #adminSpaceBtn,
+    body.guest-mode #adminSpaceBtn,
+    html.guest-mode #adminSpaceBtn {
+      display: none !important;
+    }
+
     :root {
       --bg-dark: #0a0b10;
       --bg-glow1: #2a1435;
@@ -737,6 +744,29 @@
       }
     }
   </style>
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth && window.innerWidth <= 780);
+      const isGuestParam = params.get('guest') === '1' || params.get('guest') === 'true' || params.has('event');
+      const isGuestStored = sessionStorage.getItem('is_guest') === 'true' || localStorage.getItem('is_guest') === 'true' || document.cookie.includes('is_guest=true');
+      const isAdminParam = params.get('admin') === '1' || sessionStorage.getItem('is_admin') === 'true';
+
+      if (isAdminParam) {
+        sessionStorage.removeItem('is_guest');
+        localStorage.removeItem('is_guest');
+        sessionStorage.setItem('is_admin', 'true');
+        document.cookie = "is_guest=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.documentElement.classList.remove('guest-mode');
+      } else if (isGuestParam || isGuestStored || isMobile) {
+        sessionStorage.setItem('is_guest', 'true');
+        localStorage.setItem('is_guest', 'true');
+        sessionStorage.removeItem('is_admin');
+        document.cookie = "is_guest=true; path=/; max-age=604800; SameSite=Lax";
+        document.documentElement.classList.add('guest-mode');
+      }
+    })();
+  </script>
 </head>
 
 <body>
@@ -763,7 +793,7 @@
           </svg>
         </button>
         <a href="#how" class="text-link">How it works</a>
-        <button class="primary" onclick="window.location.href='/admin'"
+        <button class="primary" id="adminSpaceBtn" onclick="window.location.href='/admin'"
           style="padding: 8px 20px; font-size: 14px; margin-left: 10px;">Admin Space</button>
       </div>
     </nav>
@@ -1021,6 +1051,9 @@
 
       const reader = new FileReader();
       reader.onload = function (e) {
+        sessionStorage.setItem('is_guest', 'true');
+        localStorage.setItem('is_guest', 'true');
+        document.cookie = "is_guest=true; path=/; max-age=604800; SameSite=Lax";
         sessionStorage.setItem('guestPhotoBase64', e.target.result);
         sessionStorage.setItem('guestName', document.querySelector('#guestName').value.trim());
         sessionStorage.setItem('guestContact', document.querySelector('#guestContact').value.trim());
